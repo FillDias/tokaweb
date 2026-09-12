@@ -4,6 +4,7 @@ import FichaCabecalho from '~/components/peca/FichaCabecalho.vue'
 import FichaMetricas from '~/components/peca/FichaMetricas.vue'
 import RelatosDefeito from '~/components/peca/RelatosDefeito.vue'
 import ListaInstalacoes from '~/components/peca/ListaInstalacoes.vue'
+import FichaVazia from '~/components/peca/FichaVazia.vue'
 
 const route = useRoute()
 const codigo = extrairCodigoDoSlug(route.params.slug as string)
@@ -16,9 +17,12 @@ const { data: peca, error } = await useFetch(`/api/peca/${codigo}`)
     <p v-if="error">Peça não encontrada.</p>
     <template v-else-if="peca">
       <FichaCabecalho :peca="peca" />
-      <FichaMetricas :estatisticas="peca.estatisticas" />
-      <RelatosDefeito :relatos-defeito="peca.relatosDefeito" />
-      <ListaInstalacoes :instalacoes="peca.instalacoes" />
+      <template v-if="peca.estatisticas.totalRegistros > 0">
+        <FichaMetricas :estatisticas="peca.estatisticas" />
+        <RelatosDefeito :relatos-defeito="peca.relatosDefeito" />
+        <ListaInstalacoes :instalacoes="peca.instalacoes" />
+      </template>
+      <FichaVazia v-else />
     </template>
   </div>
 </template>
