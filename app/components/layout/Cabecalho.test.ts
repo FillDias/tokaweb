@@ -9,12 +9,21 @@ describe('Cabecalho', () => {
     expect(wrapper.text()).toContain('TOKA')
   })
 
-  it('mostra a busca com o placeholder certo e botão Buscar, sem submeter de verdade', () => {
+  it('mostra a busca com o placeholder certo e botão Buscar', () => {
     const wrapper = mount(Cabecalho)
     const input = wrapper.find('input')
 
     expect(input.attributes('placeholder')).toBe('Código da peça, nome ou fabricante — ex.: VSTB8-C1SS3')
     expect(wrapper.text()).toContain('Buscar')
+  })
+
+  it('a busca é um formulário GET para /buscar — funciona em qualquer página, mesmo sem JavaScript', () => {
+    const wrapper = mount(Cabecalho)
+    const form = wrapper.find('[data-testid="cabecalho-busca"]')
+
+    expect(form.attributes('method')).toBe('get')
+    expect(form.attributes('action')).toBe('/buscar')
+    expect(wrapper.find('input').attributes('name')).toBe('q')
   })
 
   it('mostra os links utilitários Garagem, Oficinas e Entrar', () => {
