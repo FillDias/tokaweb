@@ -17,7 +17,7 @@ export async function buscarEstatisticasPeca(pecaId: string) {
 }
 
 type RelatosDefeito =
-  | { modo: 'estatistica'; relatos: { texto: string; percentual: number }[] }
+  | { modo: 'estatistica'; totalElegiveis: number; relatos: { texto: string; percentual: number }[] }
   | { modo: 'cru'; textos: string[] }
 
 export async function buscarRelatosDefeito(pecaId: string): Promise<RelatosDefeito> {
@@ -46,10 +46,12 @@ export async function buscarRelatosDefeito(pecaId: string): Promise<RelatosDefei
     contagem.set(texto, (contagem.get(texto) ?? 0) + 1)
   }
 
-  const relatos = [...contagem.entries()].map(([texto, n]) => ({
-    texto,
-    percentual: Math.round((n / elegiveis.length) * 1000) / 10
-  }))
+  const relatos = [...contagem.entries()]
+    .map(([texto, n]) => ({
+      texto,
+      percentual: Math.round((n / elegiveis.length) * 1000) / 10
+    }))
+    .sort((a, b) => b.percentual - a.percentual || a.texto.localeCompare(b.texto))
 
-  return { modo: 'estatistica', relatos }
+  return { modo: 'estatistica', totalElegiveis: elegiveis.length, relatos }
 }
