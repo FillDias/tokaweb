@@ -22,3 +22,11 @@ logs
 .env
 .env.*
 !.env.example
+PROJETO.md
+CLAUDE.MD
+Context.md
+Plano.md
+MISSION.md
+NOTES.md
+RESOURCES.md
+reference/

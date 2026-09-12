@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Lição 6 — auto-import do Nuxt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/estilo.css">
+</head>
+<body>
+<div class="pagina">
+
+<p style="font-size:0.85em"><a href="0005-props-tipadas.html">← lição 5</a></p>
+
+<h1>Por que computed nunca precisou de import</h1>
+<p class="subtitulo">o mistério que ficou em aberto desde a lição 3 — e a decisão que você vai tomar agora, no cabeçalho</p>
+
+<p>
+Na lição 3 você viu <code>computed()</code> sendo usado em
+<code>SeloCompat.vue</code> sem nenhum <code>import { computed } from 'vue'</code>
+em lugar nenhum. Isso <strong>não é</strong> compiler macro (macro é
+coisa do <code>defineProps</code>, lição 3) — <code>computed</code> é
+uma função de verdade, que existe em runtime. Então por que funciona?
+</p>
+
+<h2>1. O Nuxt auto-importa três coisas</h2>
+<p class="citacao">
+  "Nuxt auto-imports components, composables and Vue.js APIs to use
+  across your application without explicitly importing them."
+</p>
+<p class="fonte">— <a href="https://nuxt.com/docs/4.x/guide/concepts/auto-imports">documentação oficial do Nuxt</a></p>
+<ul>
+  <li><strong>Componentes</strong> de <code>app/components/</code></li>
+  <li><strong>Composables</strong> de <code>app/composables/</code></li>
+  <li><strong>APIs do Vue</strong> — <code>ref</code>, <code>computed</code>, <code>watch</code> — e composables do próprio Nuxt, tipo <code>useRoute</code></li>
+</ul>
+<p>É por isso que <code>computed</code> "simplesmente funciona".</p>
+
+<h2>2. O detalhe que muda tudo: nome de componente tem prefixo de pasta</h2>
+<p>
+Auto-import de <strong>componente</strong> segue uma regra: o nome da
+tag nasce do caminho do arquivo, removendo repetição.
+</p>
+<p class="citacao">
+  Um componente em <code>components/base/foo/Button.vue</code> vira
+  <code>&lt;BaseFooButton /&gt;</code>.
+</p>
+<p class="fonte">— <a href="https://nuxt.com/docs/4.x/guide/directory-structure/components">documentação oficial do Nuxt</a></p>
+<div class="exemplo-real">
+  <div class="rotulo">aplicando no toka</div>
+  <code>app/components/base/BlocoCodigo.vue</code> auto-importado
+  viraria <code>&lt;BaseBlocoCodigo&gt;</code>, não
+  <code>&lt;BlocoCodigo&gt;</code>.<br>
+  <code>app/components/base/SeloCompat.vue</code> viraria
+  <code>&lt;BaseSeloCompat&gt;</code>.
+</div>
+
+<h2>3. Por que os componentes do TOKA até agora usam import explícito</h2>
+<p>
+Em <code>Cabecalho.vue</code>, <code>FaixaVeiculo.vue</code>,
+<code>CtaFlutuante.vue</code> — todos importam
+<code>Botao</code> explicitamente:
+</p>
+<pre><code>import Botao from '~/components/base/Botao.vue'</code></pre>
+<p>
+Isso não é necessário — é uma <strong>escolha</strong>. Import
+explícito ignora a regra de prefixo e usa o nome que você quiser. A
+alternativa seria não importar nada e escrever
+<code>&lt;BaseBotao&gt;</code> no template.
+</p>
+
+<h2>4. A decisão que sobra pra você, no FichaCabecalho</h2>
+<p>
+Ao escrever <code>app/components/peca/FichaCabecalho.vue</code> e
+usar <code>BlocoCodigo</code>/<code>SeloCompat</code> (que moram em
+<code>components/base/</code>), você tem três caminhos, todos
+válidos:
+</p>
+<ol>
+  <li>Import explícito, igual ao resto do projeto até agora — <code>&lt;BlocoCodigo&gt;</code> no template</li>
+  <li>Sem import, usando o nome com prefixo — <code>&lt;BaseBlocoCodigo&gt;</code></li>
+  <li>Configurar <code>pathPrefix: false</code> nos <code>components</code> do <code>nuxt.config.ts</code>, pra todo componente do projeto perder o prefixo — inclusive os que já existem</li>
+</ol>
+<p>
+Essa lição não escolhe por você. É uma decisão de convenção do
+projeto — vale bater com o padrão que já existe antes de decidir.
+</p>
+
+<h2>Pratique — recupere da memória, não releia</h2>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">1. Um componente em <code>components/base/Botao.vue</code>, sem import, quer aparecer como <code>&lt;Botao&gt;</code>. Funciona sem configuração?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q1" value="a"> Não, o nome automático real seria BaseBotao, com prefixo.</label>
+    <label><input type="radio" name="q1" value="b"> Sim, o Nuxt usa só o nome do arquivo.</label>
+    <label><input type="radio" name="q1" value="c"> Sim, mas só funciona se estiver na pasta raiz.</label>
+    <label><input type="radio" name="q1" value="d"> Não, componente dentro de qualquer subpasta nunca é auto-importado.</label>
+  </div>
+  <div class="feedback certo">Isso — o nome herda o caminho da subpasta. Sem import ou pathPrefix:false, seria &lt;BaseBotao&gt;.</div>
+  <div class="feedback errado">Não. O componente É auto-importado (não é bloqueado) — só que com nome prefixado pela subpasta, não o nome puro do arquivo.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">2. Por que <code>computed()</code> funciona no SeloCompat sem nenhum import declarado?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q2" value="a"> O Nuxt auto-importa as APIs de reatividade do Vue.</label>
+    <label><input type="radio" name="q2" value="b"> Porque computed é uma palavra reservada do JavaScript.</label>
+    <label><input type="radio" name="q2" value="c"> Porque script setup já inclui computed por padrão.</label>
+    <label><input type="radio" name="q2" value="d"> Porque toda função de uma letra dispensa import sempre.</label>
+  </div>
+  <div class="feedback certo">Exato — é o Nuxt (não o script setup, não o JS) que auto-importa ref/computed/watch do Vue.</div>
+  <div class="feedback errado">Não. Não é palavra reservada nem coisa do script setup — é especificamente o mecanismo de auto-import do Nuxt.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">3. Se você configurar <code>pathPrefix: false</code> nos components do Nuxt, o que muda?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q3" value="a"> Os nomes de tag perdem o prefixo da subpasta.</label>
+    <label><input type="radio" name="q3" value="b"> O Nuxt para de auto-importar qualquer componente.</label>
+    <label><input type="radio" name="q3" value="c"> Todo componente passa a exigir import manual sempre.</label>
+    <label><input type="radio" name="q3" value="d"> As props dos componentes deixam de ser checadas.</label>
+  </div>
+  <div class="feedback certo">Isso — BaseBotao vira Botao, BaseSeloCompat vira SeloCompat, etc. Auto-import continua, só o nome muda.</div>
+  <div class="feedback errado">Não. pathPrefix:false só muda o nome da tag gerada — não desliga o auto-import nem afeta checagem de props.</div>
+</div>
+
+<div class="lembrete">
+  Quando for decidir entre as três opções da seção 4, me chama —
+  posso mostrar como cada uma fica no seu projeto antes de você
+  escolher. E qualquer dúvida no meio do caminho, pergunta direto.
+</div>
+
+<div class="rodape-licao">
+  <p>Referência completa: <a href="../reference/nuxt-auto-import.html">reference/nuxt-auto-import.html</a> ·
+  Fontes: <a href="https://nuxt.com/docs/4.x/guide/concepts/auto-imports">nuxt.com/docs/4.x/guide/concepts/auto-imports</a> ·
+  <a href="https://nuxt.com/docs/4.x/guide/directory-structure/components">nuxt.com/docs/4.x/guide/directory-structure/components</a></p>
+  <div class="nav-licoes">
+    <a href="0005-props-tipadas.html">← lição 5: props tipadas</a>
+    <span>trilha completa — hora de construir o FichaCabecalho</span>
+  </div>
+</div>
+
+</div>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

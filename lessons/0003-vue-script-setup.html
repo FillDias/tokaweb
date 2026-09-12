@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Lição 3 — script setup e computed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/estilo.css">
+</head>
+<body>
+<div class="pagina">
+
+<p style="font-size:0.85em"><a href="0002-drizzle-sql-escape-hatch.html">← lição 2</a></p>
+
+<h1>Como o SeloCompat decide o que mostrar</h1>
+<p class="subtitulo">&lt;script setup&gt;, defineProps e computed — a forma de todo componente do TOKA</p>
+
+<p>Componente real, <code>app/components/base/SeloCompat.vue</code> —
+o mesmo que já roda na sua ficha de peça:</p>
+
+<pre><code>&lt;script setup lang="ts"&gt;
+type Estado = 'direto' | 'adaptacao' | 'nao_serve' | 'sem_dados'
+
+const props = defineProps&lt;{
+  estado: Estado
+  texto?: string
+}&gt;()
+
+const config: Record&lt;Estado, { rotulo: string; classe: string }&gt; = {
+  direto: { rotulo: 'Encaixe direto', classe: 'bg-seiji-lo text-seiji' },
+  adaptacao: { rotulo: 'Precisa de adaptação', classe: 'bg-ki-lo text-ki-txt' },
+  nao_serve: { rotulo: 'Não serve', classe: 'bg-shu-lo text-shu' },
+  sem_dados: { rotulo: 'Sem dados', classe: 'bg-surface text-mute' }
+}
+
+const atual = computed(() =&gt; config[props.estado])
+const rotuloExibido = computed(() =&gt; props.texto ?? atual.value.rotulo)
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;span class="..." :class="atual.classe"&gt;{{ rotuloExibido }}&lt;/span&gt;
+&lt;/template&gt;</code></pre>
+
+<h2>1. &lt;script setup&gt; não é JavaScript comum</h2>
+<p>
+É açúcar sintático <strong>compilado</strong> pra Composition API. O
+código vira o corpo de uma função <code>setup()</code> — e essa
+função roda de novo <strong>cada vez que uma instância do componente
+é criada</strong> (cada `SeloCompat` novo na tela tem sua própria
+execução, suas próprias variáveis).
+</p>
+<p class="citacao">
+  "The code inside is compiled as the content of the component's
+  <code>setup()</code> function."
+</p>
+<p class="fonte">— <a href="https://vuejs.org/api/sfc-script-setup">documentação oficial do Vue</a></p>
+
+<h2>2. defineProps — parece a mesma mágica da lição 2, mas não é</h2>
+<p>
+Repare: <code>defineProps&lt;{...}&gt;()</code> não tem
+<code>import</code> em lugar nenhum do arquivo. Isso porque é uma
+<strong>compiler macro</strong> — só existe durante a compilação,
+depois some.
+</p>
+<p class="citacao">
+  "defineProps and defineEmits are compiler macros only usable inside
+  &lt;script setup&gt;. They do not need to be imported, and are
+  compiled away when &lt;script setup&gt; is processed."
+</p>
+<div class="nota-lateral">
+  Na lição 2 você viu <code>sql&lt;number&gt;</code> do Drizzle — tipo
+  que <strong>não faz nada em runtime</strong>, só avisa o
+  TypeScript. <code>defineProps&lt;T&gt;()</code> parece igual na
+  sintaxe, mas <strong>não é igual no efeito</strong>: o compilador
+  do Vue lê esse tipo e gera configuração de prop de verdade
+  (obrigatória, com validação) que roda em produção.
+</div>
+<p>
+Duas ferramentas diferentes que usam o mesmo truque visual
+(<code>&lt;T&gt;</code> genérico) pra coisas completamente diferentes
+— uma é dica morta, a outra vira código. Vale checar sempre qual é
+qual antes de assumir.
+</p>
+
+<h2>3. computed — não é uma função normal</h2>
+<p>
+<code>atual</code> e <code>rotuloExibido</code> são
+<strong>propriedades computadas cacheadas</strong>. Enquanto
+<code>props.estado</code> não mudar, acessar <code>atual.value</code>
+de novo não roda a função de novo — devolve o resultado guardado.
+</p>
+<p class="citacao">
+  "computed properties are cached based on their reactive
+  dependencies. A computed property will only re-evaluate when some
+  of its reactive dependencies have changed."
+</p>
+<p class="fonte">— <a href="https://vuejs.org/guide/essentials/computed">documentação oficial do Vue</a></p>
+<p>
+Repare que <code>rotuloExibido</code> depende de
+<code>atual.value</code> — um computed usando outro computed
+encadeado. Se fosse função normal chamada direto no template
+(<code>{{ calcularRotulo() }}</code>), ela rodaria de novo a cada
+re-render do componente, mesmo sem nada ter mudado.
+</p>
+
+<h2>Pratique — recupere da memória, não releia</h2>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">1. <code>defineProps</code> não tem import em nenhum lugar do arquivo. Por quê?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q1" value="a"> É uma macro que o compilador processa e apaga.</label>
+    <label><input type="radio" name="q1" value="b"> O Vue importa toda função globalmente sem declarar nada.</label>
+    <label><input type="radio" name="q1" value="c"> TypeScript sempre dispensa import de qualquer função genérica aqui.</label>
+    <label><input type="radio" name="q1" value="d"> O script setup já vem com props prontas sempre.</label>
+  </div>
+  <div class="feedback certo">Isso — compiler macro: só existe em tempo de compilação, some do código final.</div>
+  <div class="feedback errado">Não. É especificamente uma compiler macro do &lt;script setup&gt; — nada a ver com import global ou TypeScript genérico.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">2. Diferente de <code>sql&lt;T&gt;</code> do Drizzle (lição 2), o <code>defineProps&lt;T&gt;</code> do Vue...</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q2" value="a"> Gera validação real de prop em tempo de execução.</label>
+    <label><input type="radio" name="q2" value="b"> Também não faz nada além de avisar o editor.</label>
+    <label><input type="radio" name="q2" value="c"> Nunca funciona direito sem declarar todos tipos em runtime.</label>
+    <label><input type="radio" name="q2" value="d"> Converte o tipo sempre automaticamente pro JavaScript mais antigo.</label>
+  </div>
+  <div class="feedback certo">Exato — mesma sintaxe (&lt;T&gt;), efeito oposto: aqui o compilador gera código real de validação de prop.</div>
+  <div class="feedback errado">Não. sql&lt;T&gt; é dica morta pro TypeScript; defineProps&lt;T&gt; gera comportamento real em runtime — são opostos nesse sentido.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">3. Por que <code>atual</code> e <code>rotuloExibido</code> usam <code>computed()</code> em vez de função normal chamada no template?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q3" value="a"> Porque computed cacheia e só recalcula se mudar algo.</label>
+    <label><input type="radio" name="q3" value="b"> Porque funções normais nunca funcionam dentro do template Vue.</label>
+    <label><input type="radio" name="q3" value="c"> Porque o Vue proíbe chamar função dentro do template.</label>
+    <label><input type="radio" name="q3" value="d"> Porque computed roda uma vez só, na montagem inicial.</label>
+  </div>
+  <div class="feedback certo">Certo — cache por dependência reativa. Função normal reroda a cada render, computed só quando props.estado muda.</div>
+  <div class="feedback errado">Não. Função normal funcionaria (Vue não proíbe), só que sem cache — recalcularia sempre, sem necessidade.</div>
+</div>
+
+<div class="lembrete">
+  Quer ver o cache do computed acontecendo? Dá pra colocar um
+  console.log dentro do computed, trocar a prop estado de fora, e
+  observar quando ele realmente roda de novo. Ou qualquer outra
+  dúvida — pergunta direto pro Claude no terminal.
+</div>
+
+<div class="rodape-licao">
+  <p>Referência completa: <a href="../reference/vue-composition-api.html">reference/vue-composition-api.html</a> ·
+  Fontes: <a href="https://vuejs.org/api/sfc-script-setup">vuejs.org/api/sfc-script-setup</a> ·
+  <a href="https://vuejs.org/guide/essentials/computed">vuejs.org/guide/essentials/computed</a></p>
+  <div class="nav-licoes">
+    <a href="0002-drizzle-sql-escape-hatch.html">← lição 2: sql`` do Drizzle</a>
+    <a href="0004-ref-vs-computed.html">lição 4: ref vs computed →</a>
+  </div>
+</div>
+
+</div>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

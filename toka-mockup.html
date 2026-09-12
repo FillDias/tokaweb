@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOKA — direção visual web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ki:      #E8B93B;   /* mostarda — acao primaria */
+  --ki-lo:   #FBF1D6;   /* mostarda lavada — fundo de destaque */
+  --sumi:    #17181C;   /* tinta — texto e barras */
+  --ai:      #1E2749;   /* indigo — cabecalho, rodape, ancoras */
+  --seiji:   #4E7F6A;   /* celadon — confirmacao */
+  --shu:     #C0392B;   /* vermelhao — alerta */
+  --paper:   #FFFFFF;
+  --surface: #F5F4F0;
+  --line:    #E2E0D9;
+  --mute:    #6E6C66;
+  --r:       10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"M PLUS Rounded 1c","Noto Sans CJK JP",system-ui,sans-serif;
+  background:var(--surface); color:var(--sumi);
+  font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* ---------- barra de demo ---------- */
+.demo{background:var(--ai);color:#fff;padding:9px 0;font-size:12.5px}
+.demo .wrap{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.demo b{font-weight:700}
+.demo .sw{margin-left:auto;display:flex;gap:6px}
+.demo button{
+  font:inherit;font-size:12px;padding:5px 13px;border-radius:99px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff}
+.demo button.on{background:var(--ki);color:var(--sumi);border-color:var(--ki);font-weight:700}
+
+/* ---------- topo ---------- */
+header{background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
+.top{display:flex;align-items:center;gap:18px;padding:12px 0}
+.logo{display:flex;align-items:baseline;gap:8px;flex:0 0 auto}
+.logo .kanji{font-family:"Zen Maru Gothic",serif;font-size:26px;color:var(--ki);line-height:1}
+.logo .word{font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:20px;letter-spacing:.06em}
+.search{flex:1;display:flex;border:2px solid var(--sumi);border-radius:var(--r);overflow:hidden;background:#fff}
+.search input{flex:1;border:0;padding:11px 14px;font:inherit;font-size:14.5px;outline:0;min-width:0}
+.search input::placeholder{color:#9C9A93}
+.search .cam{padding:0 12px;display:flex;align-items:center;border-left:1px solid var(--line);color:var(--mute);font-size:17px}
+.search button{border:0;background:var(--ki);padding:0 22px;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
+.util{display:flex;gap:16px;font-size:12.5px;color:var(--mute);flex:0 0 auto}
+.util span{display:block;text-align:center}
+.util .ic{font-size:17px;color:var(--sumi)}
+
+nav.main{background:var(--ai);color:#fff}
+nav.main ul{display:flex;list-style:none;flex-wrap:wrap}
+nav.main a{display:block;padding:11px 18px;font-size:14px;font-weight:500;border-right:1px solid rgba(255,255,255,.12)}
+nav.main a:hover{background:rgba(255,255,255,.1)}
+nav.main a .jp{font-size:10.5px;opacity:.62;margin-left:6px}
+
+/* ---------- faixa do carro ativo ---------- */
+.veic{background:var(--ki-lo);border-bottom:1px solid #EBDCA9}
+.veic .wrap{display:flex;align-items:center;gap:14px;padding:11px 0;flex-wrap:wrap}
+.veic .lb{font-size:11.5px;letter-spacing:.09em;color:#8A7020;font-weight:700}
+.veic .car{font-weight:700;font-size:16px}
+.veic .car small{font-weight:400;color:var(--mute);font-size:13px;margin-left:8px}
+.veic .ch{margin-left:auto;font-size:13px;border:1px solid #D9C88C;background:#fff;
+  padding:6px 14px;border-radius:99px;font-weight:500}
+
+/* ---------- secoes ---------- */
+main{padding-bottom:64px}
+section{margin-top:34px}
+.shead{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.shead .en{font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:21px;letter-spacing:.04em}
+.shead .jp{font-size:14px;color:var(--ki);font-weight:700}
+.shead .pt{font-size:13.5px;color:var(--mute)}
+.shead .more{margin-left:auto;font-size:13px;font-weight:700;border-bottom:2px solid var(--ki)}
+
+/* ---------- duas acoes gigantes ---------- */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.duo a{
+  background:var(--paper);border:2px solid var(--sumi);border-radius:var(--r);
+  padding:24px 26px;display:flex;align-items:center;gap:18px;
+  box-shadow:4px 4px 0 var(--sumi);transition:transform .12s,box-shadow .12s}
+.duo a:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--sumi)}
+.duo a.pri{background:var(--ki)}
+.duo .ic{font-size:34px;line-height:1;flex:0 0 auto}
+.duo .en{display:inline-block;font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:24px;letter-spacing:.05em;line-height:1.15}
+.duo .jp{display:inline-block;font-size:13px;color:var(--mute);font-weight:700;margin-left:7px}
+.duo .ds{display:block;font-size:13.5px;color:#3C3B37;margin-top:6px;line-height:1.5;max-width:38ch}
+
+/* ---------- busca por aplicacao ---------- */
+.aplic{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
+.cascata{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end}
+.fld label{display:block;font-size:11.5px;font-weight:700;color:var(--mute);margin-bottom:5px;letter-spacing:.05em}
+.fld select{width:100%;font:inherit;font-size:14.5px;padding:10px 11px;border:1px solid #CFCDC5;
+  border-radius:8px;background:#fff;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--sumi) 50%),linear-gradient(135deg,var(--sumi) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 51%,calc(100% - 12px) 51%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.cascata button{border:0;background:var(--sumi);color:#fff;font:inherit;font-weight:700;
+  padding:11px 26px;border-radius:8px;cursor:pointer;font-size:14.5px}
+
+/* ---------- categorias ---------- */
+.cats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.cat{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+  padding:18px 10px 14px;text-align:center;transition:border-color .12s}
+.cat:hover{border-color:var(--sumi)}
+.cat .ic{font-size:27px;line-height:1;margin-bottom:8px;display:block}
+.cat .n{display:block;font-size:13.5px;font-weight:700;line-height:1.3}
+.cat .c{display:block;font-size:11.5px;color:var(--mute);margin-top:3px}
+.cat.flag{background:var(--ki-lo);border-color:#E4CE86}
+.cat.flag .n{color:#8A5A10}
+
+/* ---------- grade de fichas ---------- */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.fc{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;transition:box-shadow .12s,border-color .12s}
+.fc:hover{border-color:var(--sumi);box-shadow:0 3px 0 var(--line)}
+.fc .img{height:132px;background:repeating-linear-gradient(45deg,#EFEDE7,#EFEDE7 9px,#E7E5DE 9px,#E7E5DE 18px);
+  display:flex;align-items:center;justify-content:center;font-size:34px;color:#B9B6AC;position:relative}
+.fc .cond{position:absolute;top:9px;left:9px;font-size:10.5px;font-weight:700;
+  padding:3px 9px;border-radius:99px;background:var(--sumi);color:#fff;letter-spacing:.03em}
+.fc .cond.nos{background:var(--ki);color:var(--sumi)}
+.fc .cond.res{background:#F0E2C0;color:#8A5A10;border:1px solid #DEC489}
+.fc .bd{padding:12px 13px 14px;display:flex;flex-direction:column;flex:1}
+.fc .mk{font-size:11px;color:var(--mute);font-weight:700;letter-spacing:.04em}
+.fc .nm{font-size:14.5px;font-weight:700;line-height:1.32;margin:3px 0 5px}
+.fc .cd{font-family:ui-monospace,"DejaVu Sans Mono",monospace;font-size:11.5px;color:var(--ai);
+  background:var(--surface);padding:2px 7px;border-radius:5px;align-self:flex-start}
+.fc .fit{margin-top:9px;line-height:1.3;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:6px;align-self:flex-start}
+.fit.ok{background:#E4F0EA;color:var(--seiji)}
+.fit.ad{background:#FBF1D6;color:#8A5A10}
+.fit.no{background:#F8E4E1;color:var(--shu)}
+.fc .ft{margin-top:auto;padding-top:11px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.fc .pr{font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:17px;line-height:1}
+.fc .pr small{display:block;font-family:inherit;font-size:10.5px;color:var(--mute);font-weight:400;margin-top:3px}
+.fc .rg{font-size:11.5px;color:var(--mute);text-align:right;line-height:1.4}
+.fc .rg b{color:var(--sumi);font-size:13px}
+
+/* ---------- oficinas ---------- */
+.ofs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.of{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.of .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:11px}
+.of .nm{font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:16px;line-height:1.25}
+.of .lo{font-size:12px;color:var(--mute);margin-top:2px}
+.of .sel{flex:0 0 auto;width:52px;height:52px;border-radius:50%;background:var(--seiji);color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.of .sel b{font-size:15px}
+.of .sel span{font-size:8px;letter-spacing:.05em}
+.bar{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.bar .l{font-size:12px;width:98px;color:#3C3B37}
+.bar .t{flex:1;height:7px;background:var(--surface);border-radius:99px;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--seiji)}
+.bar .t i.w{background:var(--ki)}
+.bar .v{font-size:12px;font-weight:700;width:26px;text-align:right}
+
+/* ---------- ficha de peca (vista 2) ---------- */
+.crumb{font-size:12.5px;color:var(--mute);padding:14px 0 0}
+.crumb b{color:var(--sumi)}
+.ficha{display:grid;grid-template-columns:1.55fr 1fr;gap:26px;margin-top:16px;align-items:start}
+.gal{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.gal .big{height:300px;background:repeating-linear-gradient(45deg,#EFEDE7,#EFEDE7 11px,#E7E5DE 11px,#E7E5DE 22px);
+  display:flex;align-items:center;justify-content:center;font-size:66px;color:#B9B6AC}
+.gal .thumbs{display:flex;gap:8px;padding:10px}
+.gal .thumbs div{width:56px;height:46px;background:#EDEBE4;border-radius:6px;border:1px solid var(--line)}
+.gal .thumbs div:first-child{border-color:var(--sumi);border-width:2px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.panel h1{font-family:"Zen Maru Gothic",sans-serif;font-size:25px;line-height:1.2;margin:4px 0 10px}
+.panel .mk{font-size:12.5px;font-weight:700;color:var(--mute);letter-spacing:.05em}
+.codebox{background:var(--ai);color:#fff;border-radius:8px;padding:11px 14px;margin-bottom:14px}
+.codebox .l{font-size:10.5px;letter-spacing:.09em;opacity:.65}
+.codebox .v{font-family:ui-monospace,"DejaVu Sans Mono",monospace;font-size:20px;color:var(--ki);margin-top:2px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.kpis div{padding:11px 8px;text-align:center;border-right:1px solid var(--line)}
+.kpis div:last-child{border-right:0}
+.kpis .l{font-size:10.5px;color:var(--mute);letter-spacing:.05em}
+.kpis .v{font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:20px;line-height:1.2;margin-top:2px}
+.btn{display:block;text-align:center;border-radius:9px;padding:14px;font-weight:700;font-size:16px;
+  border:2px solid var(--sumi);box-shadow:4px 4px 0 var(--sumi);margin-bottom:14px;background:var(--ki)}
+.btn.gh{background:#fff;box-shadow:none;font-size:14.5px;padding:11px}
+.relato{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-top:22px}
+.rb{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.rb .l{font-size:13.5px;width:210px}
+.rb .t{flex:1;height:14px;background:var(--surface);border-radius:4px;overflow:hidden}
+.rb .t i{display:block;height:100%;background:var(--shu)}
+.rb .t i.y{background:var(--ki)}
+.rb .v{font-weight:700;font-size:13px;width:38px;text-align:right}
+.rev{border-top:1px solid var(--line);padding:14px 0;display:flex;gap:13px}
+.rev .av{width:42px;height:42px;border-radius:8px;background:var(--surface);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:19px;color:#B9B6AC;flex:0 0 42px}
+.rev .car{font-weight:700;font-size:14px}
+.rev .meta{font-size:11.5px;color:var(--mute);margin:1px 0 5px}
+.rev p{font-size:13.5px;line-height:1.6}
+.star{color:var(--ki);font-size:13px;letter-spacing:1px}
+
+/* ---------- rodape ---------- */
+footer{background:var(--ai);color:#fff;padding:36px 0 22px;margin-top:20px}
+.fgrid{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:26px}
+footer h4{font-size:12.5px;letter-spacing:.08em;color:var(--ki);margin-bottom:10px;font-weight:700}
+footer ul{list-style:none}
+footer li{font-size:13px;padding:3px 0;opacity:.86}
+footer .brand .kanji{font-family:"Zen Maru Gothic",serif;font-size:30px;color:var(--ki)}
+footer .brand .word{font-family:"Zen Maru Gothic",sans-serif;font-weight:700;font-size:19px;letter-spacing:.06em;margin-top:2px}
+footer .brand p{font-size:12.5px;opacity:.7;margin-top:9px;line-height:1.6;max-width:34ch}
+.fbot{border-top:1px solid rgba(255,255,255,.16);margin-top:26px;padding-top:14px;font-size:11.5px;opacity:.6}
+
+/* ---------- cta flutuante ---------- */
+.float{position:fixed;right:20px;bottom:20px;z-index:50;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.float a{background:var(--ki);border:2px solid var(--sumi);border-radius:99px;padding:12px 22px;
+  font-weight:700;font-size:14.5px;box-shadow:3px 3px 0 var(--sumi)}
+.float a.sec{background:#fff;font-size:13px;padding:9px 18px}
+
+.hide{display:none}
+
+/* ---------- responsivo ---------- */
+@media(max-width:1020px){
+  .cats{grid-template-columns:repeat(3,1fr)}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .ofs{grid-template-columns:1fr}
+  .ficha{grid-template-columns:1fr}
+  .fgrid{grid-template-columns:1fr 1fr}
+  .cascata{grid-template-columns:1fr 1fr}
+  .cascata button{grid-column:1/-1}
+}
+@media(max-width:660px){
+  body{font-size:14.5px}
+  .top{flex-wrap:wrap;gap:10px}
+  .search{order:3;width:100%;flex:1 0 100%}
+  .util{margin-left:auto}
+  nav.main{overflow-x:auto}
+  nav.main ul{flex-wrap:nowrap}
+  nav.main a{white-space:nowrap;padding:10px 14px}
+  .duo{grid-template-columns:1fr}
+  .cats{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:1fr 1fr;gap:11px}
+  .fc .img{height:104px}
+  .fgrid{grid-template-columns:1fr}
+  .rb .l{width:120px;font-size:12px}
+  .float a.sec{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="demo"><div class="wrap">
+  <b>TOKA</b> · direção visual web, referência Up Garage
+  <span style="opacity:.7">redimensione a janela para ver o comportamento mobile</span>
+  <span class="sw">
+    <button id="b1" class="on" onclick="show('home')">Início</button>
+    <button id="b2" onclick="show('ficha')">Ficha de peça</button>
+  </span>
+</div></div>
+
+<header>
+  <div class="wrap">
+    <div class="top">
+      <a class="logo" href="#"><span class="kanji">トカ</span><span class="word">TOKA</span></a>
+      <form class="search" onsubmit="return false">
+        <input placeholder="Código da peça, nome ou fabricante — ex.: VSTB8-C1SS3">
+        <span class="cam">▣</span>
+        <button>Buscar</button>
+      </form>
+      <div class="util">
+        <a href="#"><span class="ic">▤</span><span>Garagem</span></a>
+        <a href="#"><span class="ic">◈</span><span>Oficinas</span></a>
+        <a href="#"><span class="ic">◐</span><span>Entrar</span></a>
+      </div>
+    </div>
+  </div>
+  <nav class="main"><div class="wrap"><ul>
+    <li><a href="#">Peças<span class="jp">パーツ</span></a></li>
+    <li><a href="#">Minha garagem<span class="jp">愛車</span></a></li>
+    <li><a href="#">Livro de manutenção<span class="jp">整備手帳</span></a></li>
+    <li><a href="#">Feira<span class="jp">市場</span></a></li>
+    <li><a href="#">Oficinas<span class="jp">工場</span></a></li>
+    <li><a href="#">Guias<span class="jp">ガイド</span></a></li>
+  </ul></div></nav>
+  <div class="veic"><div class="wrap">
+    <span class="lb">SEU VEÍCULO</span>
+    <span class="car">Nissan Silvia S13 <small>1991 · SR20DET · 187.430 km</small></span>
+    <a class="ch" href="#">trocar veículo</a>
+  </div></div>
+</header>
+
+<!-- ==================== INÍCIO ==================== -->
+<main id="home"><div class="wrap">
+
+  <section>
+    <div class="duo">
+      <a class="pri" href="#">
+        <span class="ic">✍</span>
+        <span>
+          <span class="en">REGISTRAR</span> <span class="jp">パーツ登録</span>
+          <span class="ds">Você trocou alguma peça? Lance aqui. Leva um minuto e alimenta a ficha para todo mundo.</span>
+        </span>
+      </a>
+      <a href="#">
+        <span class="ic">⌕</span>
+        <span>
+          <span class="en">PROCURAR</span> <span class="jp">パーツ検索</span>
+          <span class="ds">Veja quem já instalou, o que deu errado, quanto pagou e onde tem à venda hoje.</span>
+        </span>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="en">BUSCA POR APLICAÇÃO</span><span class="jp">適合検索</span>
+      <span class="pt">só aparece o que encaixa no seu carro</span>
+    </div>
+    <div class="aplic">
+      <div class="cascata">
+        <div class="fld"><label>MARCA</label><select><option>Nissan</option><option>Toyota</option><option>Honda</option><option>Volkswagen</option></select></div>
+        <div class="fld"><label>MODELO</label><select><option>Silvia</option><option>180SX</option><option>Skyline</option></select></div>
+        <div class="fld"><label>ANO</label><select><option>1991</option><option>1992</option><option>1993</option></select></div>
+        <div class="fld"><label>MOTOR</label><select><option>SR20DET</option><option>SR20DE</option><option>CA18DET</option></select></div>
+        <button>Ver peças</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="en">CATEGORIAS</span><span class="jp">カテゴリー</span>
+      <span class="pt">4.812 fichas para Silvia S13</span>
+      <a class="more" href="#">ver todas</a>
+    </div>
+    <div class="cats">
+      <a class="cat" href="#"><span class="ic">◉</span><span class="n">Motor e turbo</span><span class="c">1.204 fichas</span></a>
+      <a class="cat" href="#"><span class="ic">▤</span><span class="n">Suspensão</span><span class="c">862 fichas</span></a>
+      <a class="cat" href="#"><span class="ic">◎</span><span class="n">Rodas e pneus</span><span class="c">741 fichas</span></a>
+      <a class="cat" href="#"><span class="ic">◈</span><span class="n">Freio</span><span class="c">509 fichas</span></a>
+      <a class="cat" href="#"><span class="ic">⌁</span><span class="n">Elétrica</span><span class="c">633 fichas</span></a>
+      <a class="cat flag" href="#"><span class="ic">⚠</span><span class="n">Com ressalva</span><span class="c">863 fichas</span></a>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="en">FICHAS RECENTES</span><span class="jp">新着パーツ</span>
+      <span class="pt">registradas nos últimos 7 dias</span>
+      <a class="more" href="#">ver todas</a>
+    </div>
+    <div class="grid">
+      <a class="fc" href="#" onclick="show('ficha')">
+        <div class="img">▤<span class="cond">USADO</span></div>
+        <div class="bd">
+          <div class="mk">TEIN</div><div class="nm">Flex Z · suspensão a rosca</div>
+          <div class="cd">VSTB8-C1SS3</div>
+          <div class="fit ok">Encaixe direto</div>
+          <div class="ft"><div class="pr">R$ 4.890<small>média de 312 registros</small></div>
+            <div class="rg"><b>4,4</b><br>312 registros</div></div>
+        </div>
+      </a>
+      <a class="fc" href="#">
+        <div class="img">◉<span class="cond nos">NOS</span></div>
+        <div class="bd">
+          <div class="mk">GARRETT</div><div class="nm">GT2871R · turbina flange T25</div>
+          <div class="cd">856801-5005S</div>
+          <div class="fit ok">Encaixe direto</div>
+          <div class="ft"><div class="pr">R$ 8.400<small>média de 61 registros</small></div>
+            <div class="rg"><b>4,7</b><br>61 registros</div></div>
+        </div>
+      </a>
+      <a class="fc" href="#">
+        <div class="img">◈<span class="cond res">COM RESSALVA</span></div>
+        <div class="bd">
+          <div class="mk">HKS</div><div class="nm">Coletor de escape 6-1</div>
+          <div class="cd">14001-AN012</div>
+          <div class="fit ad">Precisa de adaptação</div>
+          <div class="ft"><div class="pr">R$ 3.150<small>média de 44 registros</small></div>
+            <div class="rg"><b>4,1</b><br>44 registros</div></div>
+        </div>
+      </a>
+      <a class="fc" href="#">
+        <div class="img">◎<span class="cond">RETIRADA</span></div>
+        <div class="bd">
+          <div class="mk">WORK</div><div class="nm">Meister S1 3P · 17×9 +12</div>
+          <div class="cd">WMS1-1790-12</div>
+          <div class="fit no">Bate na pinça de 4 pistões</div>
+          <div class="ft"><div class="pr">R$ 9.200<small>média de 28 registros</small></div>
+            <div class="rg"><b>4,6</b><br>28 registros</div></div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="en">OFICINAS</span><span class="jp">工場</span>
+      <span class="pt">nota por especialidade, tirada de serviço registrado</span>
+      <a class="more" href="#">ver mapa</a>
+    </div>
+    <div class="ofs">
+      <div class="of">
+        <div class="hd"><div><div class="nm">Oficina Tanaka</div><div class="lo">Diadema, SP · 14 km · desde 1998</div></div>
+          <div class="sel"><b>142</b><span>SERVIÇOS</span></div></div>
+        <div class="bar"><span class="l">Motor SR20</span><span class="t"><i style="width:94%"></i></span><span class="v">4,7</span></div>
+        <div class="bar"><span class="l">Chicote elétrico</span><span class="t"><i style="width:86%"></i></span><span class="v">4,3</span></div>
+        <div class="bar"><span class="l">Funilaria</span><span class="t"><i class="w" style="width:44%"></i></span><span class="v">2,2</span></div>
+      </div>
+      <div class="of">
+        <div class="hd"><div><div class="nm">Retífica Okamoto</div><div class="lo">São Paulo, SP · 22 km · desde 1986</div></div>
+          <div class="sel"><b>89</b><span>SERVIÇOS</span></div></div>
+        <div class="bar"><span class="l">Retífica</span><span class="t"><i style="width:96%"></i></span><span class="v">4,8</span></div>
+        <div class="bar"><span class="l">Cabeçote</span><span class="t"><i style="width:90%"></i></span><span class="v">4,5</span></div>
+        <div class="bar"><span class="l">Prazo de entrega</span><span class="t"><i class="w" style="width:58%"></i></span><span class="v">2,9</span></div>
+      </div>
+      <div class="of">
+        <div class="hd"><div><div class="nm">Turbo Sakura</div><div class="lo">Santo André, SP · 18 km · desde 2011</div></div>
+          <div class="sel"><b>34</b><span>SERVIÇOS</span></div></div>
+        <div class="bar"><span class="l">Turbo</span><span class="t"><i style="width:88%"></i></span><span class="v">4,4</span></div>
+        <div class="bar"><span class="l">Mapeamento</span><span class="t"><i style="width:82%"></i></span><span class="v">4,1</span></div>
+        <div class="bar"><span class="l">Solda de alumínio</span><span class="t"><i style="width:76%"></i></span><span class="v">3,8</span></div>
+      </div>
+    </div>
+  </section>
+
+</div></main>
+
+<!-- ==================== FICHA ==================== -->
+<main id="ficha" class="hide"><div class="wrap">
+  <div class="crumb">Peças <span style="opacity:.5">›</span> Suspensão <span style="opacity:.5">›</span> Suspensão a rosca <span style="opacity:.5">›</span> <b>TEIN Flex Z</b></div>
+
+  <div class="ficha">
+    <div>
+      <div class="gal">
+        <div class="big">▤</div>
+        <div class="thumbs"><div></div><div></div><div></div><div></div><div></div></div>
+      </div>
+
+      <div class="relato">
+        <div class="shead" style="margin-bottom:14px">
+          <span class="en">O QUE OS DONOS RELATAM</span><span class="jp">不具合報告</span>
+          <span class="pt">312 registros</span>
+        </div>
+        <div class="rb"><span class="l">Batente superior rangendo</span><span class="t"><i style="width:18%"></i></span><span class="v">18%</span></div>
+        <div class="rb"><span class="l">Rosca travando ao regular</span><span class="t"><i class="y" style="width:11%"></i></span><span class="v">11%</span></div>
+        <div class="rb"><span class="l">Vazamento antes de 30 mil km</span><span class="t"><i class="y" style="width:6%"></i></span><span class="v">6%</span></div>
+        <p style="font-size:12.5px;color:var(--mute);margin-top:12px">
+          Percentual sobre registros com mais de 6 meses de uso. Abaixo de 5 registros o produto mostra os textos crus, sem estatística.
+        </p>
+      </div>
+
+      <div class="relato">
+        <div class="shead" style="margin-bottom:6px">
+          <span class="en">INSTALAÇÕES</span><span class="jp">パーツレビュー</span>
+          <a class="more" href="#">ver as 312</a>
+        </div>
+        <div class="rev">
+          <div class="av">▤</div>
+          <div>
+            <div class="car">Nissan Silvia S13 · 1991 · SR20DET</div>
+            <div class="meta">@rafa.s13 · instalada em 08/2023 aos 158.900 km · Oficina Tanaka · R$ 4.890 <span class="star">★★★★☆</span></div>
+            <p>Rangeu depois de oito meses de uso na cidade. Troquei o batente superior por um da própria TEIN e resolveu. Fora isso, altura ficou estável e nunca precisei reapertar.</p>
+          </div>
+        </div>
+        <div class="rev">
+          <div class="av">▤</div>
+          <div>
+            <div class="car">Nissan 180SX · 1994 · SR20DET</div>
+            <div class="meta">@kenji.garage · instalada em 02/2024 aos 96.100 km · feito em casa · R$ 5.100 <span class="star">★★★★★</span></div>
+            <p>Rebaixou 45 mm sem raspar em lombada. Rodou 22 mil km, zero folga. Precisa de chave de gancho pra regular, não vem no kit.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="mk">TEIN · SUSPENSÃO A ROSCA</div>
+        <h1>Flex Z</h1>
+        <div class="codebox"><div class="l">CÓDIGO DA PEÇA</div><div class="v">VSTB8-C1SS3</div></div>
+        <div class="fit ok" style="margin-bottom:14px;display:inline-block">Encaixe direto no seu Silvia S13</div>
+        <div class="kpis">
+          <div><div class="l">REGISTROS</div><div class="v">312</div></div>
+          <div><div class="l">NOTA</div><div class="v">4,4</div></div>
+          <div><div class="l">PREÇO MÉDIO</div><div class="v">4,8k</div></div>
+        </div>
+        <a class="btn" href="#">Instalei essa peça</a>
+        <a class="btn gh" href="#">Ver 7 anúncios na Feira · a partir de R$ 3.200</a>
+        <a class="btn gh" href="#" style="margin-bottom:0">Avisar quando aparecer mais barata</a>
+      </div>
+
+      <div class="panel" style="margin-top:18px">
+        <div class="shead" style="margin-bottom:12px"><span class="en" style="font-size:16px">APLICAÇÕES</span><span class="jp">適合車種</span></div>
+        <div class="bar"><span class="l" style="width:auto;flex:1">Silvia S13 · 88–93</span><span class="fit ok">direto</span></div>
+        <div class="bar"><span class="l" style="width:auto;flex:1">Silvia S14 · 93–98</span><span class="fit ok">direto</span></div>
+        <div class="bar"><span class="l" style="width:auto;flex:1">180SX · 89–98</span><span class="fit ok">direto</span></div>
+        <div class="bar" style="margin-bottom:0"><span class="l" style="width:auto;flex:1">Silvia S15 · 99–02</span><span class="fit ad">adaptação</span></div>
+      </div>
+    </div>
+  </div>
+</div></main>
+
+<footer><div class="wrap">
+  <div class="fgrid">
+    <div class="brand">
+      <div class="kanji">トカ</div>
+      <div class="word">TOKA</div>
+      <p>Rede de garagens e banco de peças para entusiastas brasileiros. Sua garagem tem história.</p>
+    </div>
+    <div><h4>PEÇAS · パーツ</h4><ul>
+      <li>Busca por código</li><li>Busca por aplicação</li><li>Categorias</li>
+      <li>Com ressalva</li><li>Criar ficha nova</li></ul></div>
+    <div><h4>GARAGEM · 愛車</h4><ul>
+      <li>Cadastrar veículo</li><li>Livro de manutenção</li><li>Exportar histórico</li>
+      <li>Transferir na venda</li></ul></div>
+    <div><h4>COMUNIDADE · 交流</h4><ul>
+      <li>Feira de peças</li><li>Oficinas</li><li>Guias de instalação</li>
+      <li>Como funciona</li><li>Regras da Feira</li></ul></div>
+  </div>
+  <div class="fbot">Mockup de direção visual · v0.2 · referência declarada: Up Garage / Croooober</div>
+</div></footer>
+
+<div class="float">
+  <a class="sec" href="#">Não achei minha peça</a>
+  <a href="#">✍ Registrar peça</a>
+</div>
+
+<script>
+function show(v){
+  document.getElementById('home').classList.toggle('hide', v!=='home');
+  document.getElementById('ficha').classList.toggle('hide', v!=='ficha');
+  document.getElementById('b1').classList.toggle('on', v==='home');
+  document.getElementById('b2').classList.toggle('on', v==='ficha');
+  window.scrollTo(0,0);
+  return false;
+}
+</script>
+</body>
+</html>

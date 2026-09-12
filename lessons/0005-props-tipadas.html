@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Lição 5 — props tipadas e valor padrão</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/estilo.css">
+</head>
+<body>
+<div class="pagina">
+
+<p style="font-size:0.85em"><a href="0004-ref-vs-computed.html">← lição 4</a></p>
+
+<h1>Props tipadas, com valor padrão</h1>
+<p class="subtitulo">o padrão que já existe no Botao.vue, e o padrão novo que o Vue 3.5 do TOKA já suporta</p>
+
+<p>Código real, <code>app/components/base/Botao.vue</code>:</p>
+<pre><code>const props = withDefaults(
+  defineProps&lt;{
+    variante?: 'primario' | 'ghost'
+    pill?: boolean
+    href?: string
+    disabled?: boolean
+  }&gt;(),
+  {
+    variante: 'primario',
+    pill: false
+  }
+)</code></pre>
+
+<h2>1. O `?` marca opcional, não o valor padrão</h2>
+<p>
+<code>variante?: 'primario' | 'ghost'</code> diz ao TypeScript: essa
+prop pode não vir. Sozinho, isso não dá valor nenhum quando falta —
+só permite omitir. O padrão precisa de outra peça.
+</p>
+
+<h2>2. withDefaults — a peça que faltava</h2>
+<p>
+Como <code>defineProps&lt;T&gt;()</code> só recebe um tipo (sem
+espaço pra valores, é só sintaxe TypeScript), o Vue precisa de uma
+segunda função pra dizer o que usar quando a prop não vem:
+<code>withDefaults(defineProps&lt;T&gt;(), {...})</code>.
+</p>
+
+<h2>3. O jeito novo — Vue 3.5, que é a versão do TOKA</h2>
+<p>
+O TOKA está no Vue <code>3.5.42</code> (<code>package.json</code>).
+Desde a 3.5, "Reactive Props Destructure" é estável: dá pra
+desestruturar a prop e pôr o valor padrão como o JavaScript já faz
+em qualquer desestruturação:
+</p>
+<pre><code>// equivalente ao withDefaults acima, sem precisar dele
+const { variante = 'primario', pill = false, href, disabled } =
+  defineProps&lt;{
+    variante?: 'primario' | 'ghost'
+    pill?: boolean
+    href?: string
+    disabled?: boolean
+  }&gt;()</code></pre>
+<p class="citacao">
+  "In 3.5 and above, variables destructured from a defineProps call
+  in &lt;script setup&gt; are reactive." O compilador reescreve
+  <code>variante</code> pra <code>props.variante</code> por baixo dos
+  panos — continua reativo, mesmo parecendo uma variável comum.
+</p>
+<p class="fonte">— <a href="https://blog.vuejs.org/posts/vue-3-5">Vue 3.5 announcement, blog oficial</a></p>
+
+<div class="nota-lateral">
+  Pegadinha registrada na doc: se você passar a variável
+  desestruturada pra um <code>watch()</code> ou composable e quiser
+  manter a reatividade, precisa envolver num getter:
+  <code>watch(() =&gt; variante)</code>, não <code>watch(variante)</code>.
+</div>
+
+<p>
+<code>Botao.vue</code> usa o padrão antigo (<code>withDefaults</code>)
+— funciona perfeitamente, não tem nada errado. É só mais verboso. Ao
+escrever componente novo, os dois estilos são válidos; o novo é mais
+curto porque o projeto já está na versão que suporta.
+</p>
+
+<h2>Pratique — recupere da memória, não releia</h2>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">1. Por que <code>variante?: 'primario' | 'ghost'</code> tem <code>?</code> no tipo?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q1" value="a"> Marca que a prop é opcional, não obrigatória.</label>
+    <label><input type="radio" name="q1" value="b"> Marca que o valor só pode ser nulo.</label>
+    <label><input type="radio" name="q1" value="c"> Marca que o Vue sempre gera valor aleatório.</label>
+    <label><input type="radio" name="q1" value="d"> Marca que só aceita string, nunca aceita booleano.</label>
+  </div>
+  <div class="feedback certo">Isso — opcional, pode vir ou não. Sozinho não dá valor nenhum quando falta.</div>
+  <div class="feedback errado">Não. `?` é só "opcional" em TypeScript — não define valor, não restringe tipo além do já declarado.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">2. O que <code>withDefaults</code> faz que <code>defineProps</code> sozinho não faz?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q2" value="a"> Define valor padrão quando a prop não vem.</label>
+    <label><input type="radio" name="q2" value="b"> Define quais props existem, não seus valores padrão.</label>
+    <label><input type="radio" name="q2" value="c"> Transforma toda prop opcional em prop sempre obrigatória.</label>
+    <label><input type="radio" name="q2" value="d"> Impede prop de receber valor undefined em runtime.</label>
+  </div>
+  <div class="feedback certo">Exato — defineProps só declara forma/tipo; withDefaults é quem dá o valor de fallback.</div>
+  <div class="feedback errado">Não. defineProps já declara quais props existem — o que falta é só o valor padrão, que é o trabalho do withDefaults.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">3. No Vue 3.5+, o que muda ao usar <code>const { pill = false } = defineProps&lt;...&gt;()</code> em vez de <code>withDefaults</code>?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q3" value="a"> Nada na prática — mesmo resultado, sintaxe mais curta.</label>
+    <label><input type="radio" name="q3" value="b"> A prop deixa de ser reativa, fica fixa.</label>
+    <label><input type="radio" name="q3" value="c"> A prop passa a aceitar qualquer tipo sempre.</label>
+    <label><input type="radio" name="q3" value="d"> O componente para de receber prop do pai.</label>
+  </div>
+  <div class="feedback certo">Isso — o compilador do 3.5 mantém a reatividade, mesmo desestruturado. Efeito idêntico ao withDefaults, só mais curto.</div>
+  <div class="feedback errado">Não. Antes do 3.5 desestruturar quebrava a reatividade — mas isso foi resolvido; hoje o resultado é o mesmo do withDefaults.</div>
+</div>
+
+<div class="lembrete">
+  Na hora de escrever as props do FichaCabecalho, qualquer dúvida
+  sobre qual dos dois estilos usar — pergunta direto pro Claude no
+  terminal.
+</div>
+
+<div class="rodape-licao">
+  <p>Referência completa: <a href="../reference/vue-composition-api.html">reference/vue-composition-api.html</a> ·
+  Fontes: <a href="https://vuejs.org/guide/components/props.html">vuejs.org/guide/components/props</a> ·
+  <a href="https://blog.vuejs.org/posts/vue-3-5">blog.vuejs.org/posts/vue-3-5</a></p>
+  <div class="nav-licoes">
+    <a href="0004-ref-vs-computed.html">← lição 4: ref vs computed</a>
+    <a href="0006-nuxt-auto-import.html">lição 6: auto-import do Nuxt →</a>
+  </div>
+</div>
+
+</div>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+/* Estilo compartilhado — workspace de ensino TOKA */
+/* Tufte-inspired: serifa pra leitura longa, margem generosa, notas laterais */
+
+:root {
+  --tinta: #1a1a1a;
+  --papel: #fdfcf9;
+  --mute: #6b6b63;
+  --linha: #ddd8cc;
+  --destaque: #1e2749;   /* ai, do próprio TOKA */
+  --acento: #e8b93b;     /* ki, do próprio TOKA */
+  --ok: #4e7f6a;         /* seiji */
+  --erro: #c0392b;       /* shu */
+  --medida: 40em;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: "Source Serif 4", Georgia, "Iowan Old Style", serif;
+  background: var(--papel);
+  color: var(--tinta);
+  font-size: 19px;
+  line-height: 1.6;
+  margin: 0;
+  padding: 3rem 1.5rem 6rem;
+}
+
+.pagina {
+  max-width: var(--medida);
+  margin: 0 auto;
+}
+
+h1, h2, h3 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 0.2em;
+}
+
+.subtitulo {
+  color: var(--mute);
+  font-size: 1.05rem;
+  font-style: italic;
+  margin-top: 0;
+  margin-bottom: 2.5rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  margin-top: 2.8rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--linha);
+}
+
+p { margin: 1em 0; }
+
+a { color: var(--destaque); }
+a:hover { color: var(--acento); }
+
+code, pre {
+  font-family: ui-monospace, "SFMono-Regular", "DejaVu Sans Mono", monospace;
+  font-size: 0.88em;
+}
+
+code {
+  background: #f1efe6;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+pre {
+  background: var(--destaque);
+  color: #f0eee4;
+  padding: 1.1em 1.3em;
+  border-radius: 6px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+pre code { background: none; padding: 0; color: inherit; }
+
+.nota-lateral {
+  float: right;
+  clear: right;
+  width: 13em;
+  margin-right: -16em;
+  font-size: 0.82rem;
+  color: var(--mute);
+  line-height: 1.45;
+  border-left: 2px solid var(--linha);
+  padding-left: 0.8em;
+}
+
+@media (max-width: 1100px) {
+  .nota-lateral {
+    float: none;
+    width: auto;
+    margin: 1em 0;
+    border-left: 2px solid var(--linha);
+    padding-left: 0.8em;
+  }
+}
+
+.citacao {
+  border-left: 3px solid var(--acento);
+  padding-left: 1em;
+  margin: 1.4em 0;
+  color: #33322c;
+  font-size: 0.97em;
+}
+
+.fonte {
+  font-size: 0.85rem;
+  color: var(--mute);
+  margin-top: -0.6em;
+}
+
+.exemplo-real {
+  border: 1px solid var(--linha);
+  background: #f7f5ec;
+  border-radius: 8px;
+  padding: 1.1em 1.3em;
+  margin: 1.4em 0;
+}
+
+.exemplo-real .rotulo {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--destaque);
+  font-weight: 700;
+  margin-bottom: 0.5em;
+}
+
+.quiz {
+  border: 2px solid var(--destaque);
+  border-radius: 8px;
+  padding: 1.3em 1.4em;
+  margin: 1.8em 0;
+  background: #fff;
+}
+
+.quiz .pergunta {
+  font-weight: 700;
+  margin-bottom: 0.8em;
+}
+
+.quiz .opcoes { display: flex; flex-direction: column; gap: 0.5em; }
+
+.quiz label {
+  display: flex;
+  gap: 0.6em;
+  align-items: baseline;
+  cursor: pointer;
+  padding: 0.4em 0.6em;
+  border-radius: 5px;
+  border: 1px solid var(--linha);
+}
+
+.quiz label:hover { background: #f7f5ec; }
+
+.quiz .feedback {
+  margin-top: 1em;
+  padding: 0.7em 0.9em;
+  border-radius: 5px;
+  font-size: 0.95em;
+  display: none;
+}
+
+.quiz .feedback.mostrar { display: block; }
+.quiz .feedback.certo { background: #e4f0ea; color: var(--ok); }
+.quiz .feedback.errado { background: #f8e4e1; color: var(--erro); }
+
+.rodape-licao {
+  margin-top: 3.5rem;
+  padding-top: 1.3rem;
+  border-top: 1px solid var(--linha);
+  font-size: 0.9rem;
+  color: var(--mute);
+}
+
+.lembrete {
+  background: #fbf1d6;
+  border-radius: 6px;
+  padding: 0.9em 1.1em;
+  font-size: 0.92rem;
+  margin-top: 1em;
+}
+
+.nav-licoes {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-top: 1.5rem;
+}

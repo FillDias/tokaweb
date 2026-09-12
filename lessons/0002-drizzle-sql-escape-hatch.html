@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Lição 2 — sql`` do Drizzle</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/estilo.css">
+</head>
+<body>
+<div class="pagina">
+
+<p style="font-size:0.85em"><a href="0001-pg-trgm-busca-tolerante.html">← lição 1</a></p>
+
+<h1>O bug que o TypeScript não avisa</h1>
+<p class="subtitulo">sql`` do Drizzle: quando usar, e o gotcha do <code>numeric</code> que virou <code>::float</code> no seu próprio código</p>
+
+<p>
+Código real, de agora mesmo —
+<code>server/database/queries/instalacao.ts</code>:
+</p>
+<pre><code>export async function buscarEstatisticasPeca(pecaId: string) {
+  const [resultado] = await db
+    .select({
+      totalRegistros: sql&lt;number&gt;`count(*)::int`,
+      notaMedia:      sql&lt;number | null&gt;`round(avg(${instalacao.nota}), 1)::float`,
+      precoMedio:     sql&lt;number | null&gt;`round(avg(${instalacao.custo}), 2)::float`
+    })
+    .from(instalacao)
+    .where(eq(instalacao.pecaId, pecaId))
+
+  return resultado
+}</code></pre>
+
+<h2>1. Por que sql`` aqui, e não o query builder normal?</h2>
+<p>
+O query builder do Drizzle cobre <code>select</code>/<code>where</code>/
+<code>insert</code>/<code>join</code> com segurança de tipo. Mas não
+tem método pronto pra <code>avg()</code>, <code>count()</code> ou
+aritmética de data — essas são expressões SQL que o builder não
+modela. Pra isso, o Drizzle dá o <code>sql</code> tagged template: um
+escape hatch que mistura referência de coluna tipada com SQL cru.
+</p>
+<p class="citacao">
+  "sql template allows you to write more type-safe and parameterized
+  queries" — e pode ser usado seletivamente dentro de um
+  <code>select</code>, <code>where</code>, <code>orderBy</code>.
+</p>
+<p class="fonte">— <a href="https://orm.drizzle.team/docs/sql">documentação oficial do Drizzle</a></p>
+
+<h2>2. A interpolação não é concatenação de string</h2>
+<p>
+Quando você escreve <code>sql`${instalacao.nota}`</code>, o Drizzle
+não gruda texto — ele escapa o identificador da coluna
+(<code>"instalacao"."nota"</code>) e, pra valores dinâmicos, gera
+parâmetro (<code>$1</code>) em vez de embutir o valor na string. É
+seguro contra SQL injection do mesmo jeito que o resto do query
+builder.
+</p>
+
+<h2>3. O gotcha: sql&lt;T&gt; não converte nada</h2>
+<p>
+Aqui está o ponto que essa lição quer que grude: <code>sql&lt;number&gt;</code>
+é <strong>só uma dica pro TypeScript</strong>. Em runtime, o valor que
+volta é o que o banco e o driver decidirem devolver — a anotação de
+tipo não muda nada de verdade.
+</p>
+<div class="nota-lateral">
+  Sem <code>.mapWith()</code>, não existe conversão automática.
+  <code>sql&lt;number&gt;</code> é aviso de compilador, não garantia
+  de runtime.
+</div>
+<p>
+E aqui mora o motivo real do <code>::float</code> e do
+<code>::int</code> no seu código: colunas <code>numeric</code> (como
+<code>custo</code>) e o resultado de <code>count(*)</code> (tipo
+<code>bigint</code>) <strong>voltam como string</strong> do Postgres
+via <code>postgres.js</code> — de propósito, pra não perder precisão
+que o número de 64 bits do JavaScript não representa direito.
+</p>
+<div class="exemplo-real">
+  <div class="rotulo">sem o cast, isso quebraria silenciosamente</div>
+  <code>sql&lt;number&gt;`avg(${instalacao.custo})`</code> devolveria a
+  <em>string</em> <code>"200.00"</code> — o TypeScript juraria que é
+  <code>number</code>, mas <code>precoMedio + 1</code> viraria
+  <code>"200.001"</code>, não <code>201</code>.
+</div>
+<p>
+O <code>::float</code> e o <code>::int</code> forçam o Postgres a
+devolver um tipo que o driver já sabe mapear pra número de verdade —
+<code>integer</code> comum não sofre disso, só <code>numeric</code> e
+<code>bigint</code>.
+</p>
+
+<h2>Pratique — recupere da memória, não releia</h2>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">1. Por que a query usa <code>sql`avg(...)`</code> em vez de um método pronto do Drizzle?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q1" value="a"> Porque o query builder não tem função de média.</label>
+    <label><input type="radio" name="q1" value="b"> Porque toda consulta de agregação precisa de SQL cru.</label>
+    <label><input type="radio" name="q1" value="c"> Porque o Drizzle nunca permite consultar colunas numéricas direto.</label>
+    <label><input type="radio" name="q1" value="d"> Porque sql roda mais rápido que o builder normal.</label>
+  </div>
+  <div class="feedback certo">Isso — avg/count/interval não têm método no builder. Não é regra geral nem questão de performance.</div>
+  <div class="feedback errado">Não. O motivo é específico: essas funções não têm método no query builder, nada a ver com performance ou regra geral.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">2. O que <code>sql&lt;number&gt;</code> faz, exatamente?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q2" value="a"> Só avisa o TypeScript, sem afetar o retorno.</label>
+    <label><input type="radio" name="q2" value="b"> Converte o valor pro tipo number de fato.</label>
+    <label><input type="radio" name="q2" value="c"> Faz o Postgres sempre devolver um float8 puro.</label>
+    <label><input type="radio" name="q2" value="d"> Impede que o valor volte como string nunca.</label>
+  </div>
+  <div class="feedback certo">Exato — é aviso de compilador. Sem .mapWith(), zero efeito em runtime.</div>
+  <div class="feedback errado">Não. sql&lt;T&gt; não converte nada — é só o que o TypeScript acredita, não o que acontece de verdade.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">3. Por que <code>count(*)</code> e <code>avg(custo)</code> levam cast, mas uma coluna <code>integer</code> comum não precisa?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q3" value="a"> Porque bigint e numeric voltam como texto, não número.</label>
+    <label><input type="radio" name="q3" value="b"> Porque count e avg são funções que sempre falham.</label>
+    <label><input type="radio" name="q3" value="c"> Porque toda função de agregação sempre precisa ser convertida.</label>
+    <label><input type="radio" name="q3" value="d"> Porque o Drizzle sempre exige cast em consulta nova.</label>
+  </div>
+  <div class="feedback certo">Isso — bigint (de count) e numeric (de custo) voltam como string por design, pra não perder precisão. integer não tem esse problema.</div>
+  <div class="feedback errado">Não. É específico dos tipos bigint/numeric — não é regra geral de "toda agregação" nem do Drizzle.</div>
+</div>
+
+<div class="lembrete">
+  Quer ver o que acontece sem o <code>::float</code> na prática? Eu
+  posso tirar o cast, rodar o teste, e te mostrar o erro de tipo (ou
+  pior — o bug silencioso) acontecendo ao vivo. É só pedir. E qualquer
+  dúvida sobre isso, pergunta direto pro Claude no terminal.
+</div>
+
+<div class="rodape-licao">
+  <p>Referência completa: <a href="../reference/drizzle-sql.html">reference/drizzle-sql.html</a> ·
+  Fontes: <a href="https://orm.drizzle.team/docs/sql">orm.drizzle.team/docs/sql</a> ·
+  <a href="https://github.com/brianc/node-postgres/issues/811">node-postgres#811</a></p>
+  <div class="nav-licoes">
+    <a href="0001-pg-trgm-busca-tolerante.html">← lição 1: busca tolerante (pg_trgm)</a>
+    <span>próxima: Vue 3/Nuxt — ainda não escrita</span>
+  </div>
+</div>
+
+</div>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>
