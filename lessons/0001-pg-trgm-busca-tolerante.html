@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Lição 1 — busca tolerante</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/estilo.css">
+</head>
+<body>
+<div class="pagina">
+
+<h1>Por que "VST88" acha a peça certa</h1>
+<p class="subtitulo">como <code>codigo_norm</code> + <code>pg_trgm</code> fazem a busca do TOKA tolerar erro de digitação</p>
+
+<p>
+Isso aqui não é hipotético — é código que já roda no seu projeto,
+em <code>server/api/buscar.get.ts</code>. Alguém digita o código da
+peça errado (<code>VST88C1SS3</code>, devia ser <code>VSTB8C1SS3</code>)
+e a busca ainda acha a TEIN Flex Z certa, em primeiro lugar, com
+score <code>0.571</code>.
+</p>
+
+<p>Essa lição explica o mecanismo por trás disso, peça por peça.</p>
+
+<h2>1. O trigrama</h2>
+<p>
+A extensão <code>pg_trgm</code> quebra qualquer string em grupos de
+3 caracteres consecutivos — trigramas. Cada palavra ganha dois
+espaços de prefixo e um de sufixo antes de ser quebrada.
+</p>
+<div class="exemplo-real">
+  <div class="rotulo">exemplo</div>
+  <code>cat</code> → <code>" c"</code>, <code>" ca"</code>, <code>"cat"</code>, <code>"at "</code>
+</div>
+<p class="citacao">
+  "A trigram is a group of three consecutive characters taken from a
+  string. We can measure the similarity of two strings by counting
+  the number of trigrams they share."
+</p>
+<p class="fonte">— <a href="https://www.postgresql.org/docs/current/pgtrgm.html">documentação oficial do pg_trgm</a></p>
+
+<h2>2. similarity() e o operador %</h2>
+<p>
+<code>similarity(a, b)</code> conta quantos trigramas <code>a</code> e
+<code>b</code> têm em comum e devolve um número de <code>0</code>
+(nada em comum) a <code>1</code> (idênticas). O operador
+<code>%</code> é o atalho: <code>a % b</code> é verdadeiro quando
+<code>similarity(a, b)</code> passa de um limiar (threshold).
+</p>
+<div class="nota-lateral">
+  O threshold é o parâmetro <code>pg_trgm.similarity_threshold</code>,
+  padrão <code>0.3</code>. O TOKA não sobrescreve esse valor em
+  nenhum lugar — então a busca usa o padrão do Postgres.
+</div>
+<p>
+No projeto, isso vira a query de <code>server/api/buscar.get.ts</code>:
+</p>
+<pre><code>.where(sql`${peca.codigoNorm} % ${termo}`)
+.orderBy(sql`similarity(${peca.codigoNorm}, ${termo}) DESC`)</code></pre>
+
+<h2>3. Por que existe <code>codigo_norm</code></h2>
+<p>
+Repare: a query compara contra <code>codigo_norm</code>, não contra
+<code>codigo</code>. A pergunta natural é "isso é porque o pg_trgm
+não lida com hífen?" — e a resposta é <strong>não</strong>: a
+própria documentação diz que o pg_trgm já ignora pontuação ao montar
+os trigramas. O motivo real é outro: <code>codigo_norm</code> deixa
+tudo maiúsculo e sem hífen pra que <strong>toda consulta — a busca
+tolerante e a busca exata do <code>GET /api/peca/[codigo]</code> —
+bata contra a mesma forma canônica</strong>, não importa como o
+usuário digitou.
+</p>
+<div class="exemplo-real">
+  <div class="rotulo">no banco — server/database/schema.ts</div>
+<pre><code>codigo_norm text GENERATED ALWAYS AS
+  (upper(regexp_replace(codigo, '[^a-zA-Z0-9]', '', 'g'))) STORED</code></pre>
+</div>
+<p>
+Coluna <strong>gerada</strong> — o Postgres calcula sozinho toda vez
+que <code>codigo</code> muda. Ninguém escreve em
+<code>codigo_norm</code> direto.
+</p>
+
+<h2>4. O índice</h2>
+<p>
+Sem índice, <code>%</code> ainda funciona — só que varrendo a tabela
+inteira toda vez. O índice GIN com <code>gin_trgm_ops</code> guarda
+os trigramas de forma buscável:
+</p>
+<pre><code>CREATE INDEX peca_codigo_trgm ON peca
+  USING gin (codigo_norm gin_trgm_ops);</code></pre>
+
+<h2>Pratique — recupere da memória, não releia</h2>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">1. Por que <code>codigo_norm</code> existe, em vez de comparar direto contra <code>codigo</code>?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q1" value="a"> Pra toda consulta comparar contra a mesma forma canônica.</label>
+    <label><input type="radio" name="q1" value="b"> Porque o índice GIN não aceita hífen na coluna.</label>
+    <label><input type="radio" name="q1" value="c"> Porque a função similarity trava com espaço no meio.</label>
+    <label><input type="radio" name="q1" value="d"> Porque o Postgres exige letra maiúscula em todo índice.</label>
+  </div>
+  <div class="feedback certo">Isso — o pg_trgm já ignora pontuação sozinho. codigo_norm existe pra normalizar maiúscula/hífen de forma consistente em toda consulta, não só na busca tolerante.</div>
+  <div class="feedback errado">Não é isso. Releia a seção 3 — a pista está em "toda consulta", não só a busca por similaridade.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">2. O operador <code>%</code> em <code>codigo_norm % 'VST88C1SS3'</code> compara a similaridade contra o quê?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q2" value="a"> Um número mínimo fixo, o threshold configurado.</label>
+    <label><input type="radio" name="q2" value="b"> Um número aleatório sorteado a cada consulta.</label>
+    <label><input type="radio" name="q2" value="c"> A quantidade total de linhas na tabela.</label>
+    <label><input type="radio" name="q2" value="d"> O tamanho em caracteres da outra string.</label>
+  </div>
+  <div class="feedback certo">Exato — pg_trgm.similarity_threshold, padrão 0.3 no TOKA (nunca foi alterado).</div>
+  <div class="feedback errado">Não. É um valor fixo e configurável: pg_trgm.similarity_threshold.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">3. Sem o índice GIN em <code>codigo_norm</code>, o que muda numa busca?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q3" value="a"> A busca funciona igual, só que mais lenta.</label>
+    <label><input type="radio" name="q3" value="b"> A busca para de funcionar e trava tudo.</label>
+    <label><input type="radio" name="q3" value="c"> O banco apaga a coluna codigo_norm na hora.</label>
+    <label><input type="radio" name="q3" value="d"> A busca ignora o operador e retorna vazio.</label>
+  </div>
+  <div class="feedback certo">Certo — índice é sobre desempenho, não sobre correção. Sem ele, o Postgres varre a tabela inteira.</div>
+  <div class="feedback errado">Não. O índice acelera, mas a busca já funciona corretamente sem ele — só fica lenta em tabela grande.</div>
+</div>
+
+<div class="lembrete">
+  Travou em algum ponto, ou quer que eu aprofunde alguma parte
+  (por exemplo: o que acontece se você mudar o threshold pra 0.5, ou
+  como o GiST se compara ao GIN aqui)? Pergunte direto pro Claude no
+  terminal — essa é a forma mais rápida de tirar a dúvida.
+</div>
+
+<div class="rodape-licao">
+  <p>Referência completa: <a href="../reference/pg-trgm.html">reference/pg-trgm.html</a> ·
+  Fonte primária: <a href="https://www.postgresql.org/docs/current/pgtrgm.html">postgresql.org/docs/current/pgtrgm.html</a></p>
+  <p>Próxima trilha (ainda não escrita): Drizzle ORM ou Vue 3/Nuxt — qual você quer primeiro?</p>
+</div>
+
+</div>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

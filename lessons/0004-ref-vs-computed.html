@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Lição 4 — ref vs computed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/estilo.css">
+</head>
+<body>
+<div class="pagina">
+
+<p style="font-size:0.85em"><a href="0003-vue-script-setup.html">← lição 3</a></p>
+
+<h1>ref vs computed</h1>
+<p class="subtitulo">a pergunta que decide qual dos dois usar: de onde vem o valor?</p>
+
+<p>
+Repare numa coisa no <code>SeloCompat.vue</code> da lição 3: ele não
+tem <strong>nenhum <code>ref</code></strong>. Só <code>computed</code>.
+Isso não é acidente — é a pista de quando usar cada um.
+</p>
+
+<h2>1. ref — a fonte, o dado que você escreve</h2>
+<p>
+<code>ref()</code> embrulha um valor num objeto reativo. Você
+<strong>atribui</strong> direto: <code>minhaRef.value = novoValor</code>.
+Sempre que o valor nasce de algo que aconteceu agora — usuário
+digitou, clicou, a API respondeu — é <code>ref</code>.
+</p>
+<pre><code>const termoBusca = ref('')
+// no template: &lt;input v-model="termoBusca"&gt;
+// termoBusca.value muda toda vez que o usuário digita</code></pre>
+
+<h2>2. computed — o derivado, o que você nunca escreve direto</h2>
+<p>
+<code>computed()</code> não guarda um valor próprio — ele
+<strong>calcula</strong> a partir de outro dado reativo (um
+<code>ref</code>, uma <code>prop</code>, outro <code>computed</code>).
+Cacheado: só recalcula se a dependência mudar (lição 3).
+</p>
+<pre><code>// SeloCompat.vue — os dois computed dependem só de props,
+// nenhum dado local, nenhum ref
+const atual = computed(() =&gt; config[props.estado])
+const rotuloExibido = computed(() =&gt; props.texto ?? atual.value.rotulo)</code></pre>
+
+<h2>3. Por que SeloCompat não tem ref nenhum</h2>
+<p>
+Porque ele não guarda estado próprio. Tudo que ele mostra já existe
+em algum lugar — vem de <code>props.estado</code> e
+<code>props.texto</code>, que o componente pai controla. Não há nada
+que "aconteça" dentro do <code>SeloCompat</code> — ele só reage ao
+que chega.
+</p>
+<div class="nota-lateral">
+  Regra prática: se o valor <strong>nasce</strong> num evento (input,
+  click, resposta de API) → <code>ref</code>. Se o valor
+  <strong>já existe</strong> em outro lugar e você só está
+  reformatando/combinando → <code>computed</code>.
+</div>
+
+<h2>4. E o cabeçalho da ficha (item 5)?</h2>
+<p>
+Pensando no que você vai construir: se o <code>FichaCabecalho</code>
+só recebe a peça já carregada como prop e mostra o nome, o código, o
+selo — ele é <strong>parecido com o SeloCompat</strong>: sem estado
+próprio, sem <code>ref</code>, só <code>props</code> e talvez
+<code>computed</code> pra formatar algo. Se em algum momento ele
+precisar guardar algo que o usuário faz ali dentro (por exemplo,
+expandir uma seção), aí sim entra <code>ref</code>.
+</p>
+
+<h2>Pratique — recupere da memória, não releia</h2>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">1. Um &lt;input&gt; de busca guarda o que o usuário está digitando agora. Isso é ref ou computed?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q1" value="a"> É ref — nasce direto da própria digitação do usuário.</label>
+    <label><input type="radio" name="q1" value="b"> É computed — porque input sempre depende de outro dado.</label>
+    <label><input type="radio" name="q1" value="c"> Não precisa de nenhum dos dois, só variável comum.</label>
+    <label><input type="radio" name="q1" value="d"> É prop — todo dado de tela vem de fora sempre.</label>
+  </div>
+  <div class="feedback certo">Isso — o valor nasce do evento de digitação, não deriva de outro dado. É exatamente o caso de uso de ref.</div>
+  <div class="feedback errado">Não. O que o usuário digita é o dado de origem, não algo calculado — isso é ref, não computed nem prop.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">2. SeloCompat não tem nenhum ref no código. Por quê?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q2" value="a"> Porque componente pequeno nunca precisa mesmo de ref.</label>
+    <label><input type="radio" name="q2" value="b"> Porque tudo nele deriva só das props recebidas.</label>
+    <label><input type="radio" name="q2" value="c"> Porque ref só funciona dentro de composables customizados.</label>
+    <label><input type="radio" name="q2" value="d"> Porque o Vue proíbe ref sem template real.</label>
+  </div>
+  <div class="feedback certo">Isso — sem estado próprio, sem evento local, nada pra guardar. Só formatação do que já chegou via props.</div>
+  <div class="feedback errado">Não. Não é sobre tamanho do componente nem restrição técnica — é que ele não tem nenhum dado de origem próprio.</div>
+</div>
+
+<div class="quiz" data-certa="a">
+  <div class="pergunta">3. Dá pra fazer <code>ref.value = novoValor</code> direto? E <code>computed.value</code>?</div>
+  <div class="opcoes">
+    <label><input type="radio" name="q3" value="a"> Ref sim, direto; computed normal é só leitura.</label>
+    <label><input type="radio" name="q3" value="b"> Nenhum dos dois aceita atribuição direta de valor.</label>
+    <label><input type="radio" name="q3" value="c"> Os dois aceitam atribuição igual, sem diferença nenhuma.</label>
+    <label><input type="radio" name="q3" value="d"> Só computed aceita valor novo, ref é fixo.</label>
+  </div>
+  <div class="feedback certo">Certo — ref é a fonte, você escreve nela. computed (na forma comum, sem setter) é só leitura, é derivado.</div>
+  <div class="feedback errado">Não. ref aceita atribuição direta (é a fonte); computed comum é só leitura, calculado a partir de outra coisa.</div>
+</div>
+
+<div class="lembrete">
+  Qualquer dúvida sobre onde ref ou computed entram no que você está
+  construindo — pergunta direto pro Claude no terminal antes de
+  escrever o componente.
+</div>
+
+<div class="rodape-licao">
+  <p>Referência completa: <a href="../reference/vue-composition-api.html">reference/vue-composition-api.html</a> ·
+  Fonte: <a href="https://vuejs.org/guide/essentials/reactivity-fundamentals.html">vuejs.org/guide/essentials/reactivity-fundamentals</a></p>
+  <div class="nav-licoes">
+    <a href="0003-vue-script-setup.html">← lição 3: script setup e computed</a>
+    <a href="0005-props-tipadas.html">lição 5: props tipadas →</a>
+  </div>
+</div>
+
+</div>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>
