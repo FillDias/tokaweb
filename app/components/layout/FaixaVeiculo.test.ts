@@ -29,4 +29,15 @@ describe('FaixaVeiculo', () => {
     expect(wrapper.text()).toContain('187.430 km')
     expect(wrapper.text()).toContain('trocar veículo')
   })
+
+  it('sem km (veículo veio da busca por aplicação, não da garagem), não mostra "undefined km"', () => {
+    const wrapper = mount(FaixaVeiculo, {
+      props: {
+        veiculo: { marca: 'Nissan', modelo: '180SX', ano: 1994, motor: 'SR20DET' }
+      }
+    })
+
+    expect(wrapper.text()).toContain('Nissan 180SX')
+    expect(wrapper.text()).not.toContain('km')
+  })
 })

@@ -6,7 +6,7 @@ type Veiculo = {
   modelo: string
   ano: number
   motor: string
-  km: number
+  km?: number
 }
 
 defineProps<{
@@ -24,14 +24,14 @@ const formatarKm = (km: number) => `${km.toLocaleString('pt-BR')} km`
         <span class="font-bold text-base">
           {{ veiculo.marca }} {{ veiculo.modelo }}
           <small class="font-normal text-mute text-[13px] ml-2">
-            {{ veiculo.ano }} · {{ veiculo.motor }} · {{ formatarKm(veiculo.km) }}
+            {{ veiculo.ano }} · {{ veiculo.motor }}<template v-if="veiculo.km"> · {{ formatarKm(veiculo.km) }}</template>
           </small>
         </span>
-        <Botao pill variante="ghost" class="ml-auto text-[13px]">trocar veículo</Botao>
+        <Botao href="/" pill variante="ghost" class="ml-auto text-[13px]">trocar veículo</Botao>
       </template>
       <template v-else>
         <span class="text-mute text-[13px]">Nenhum veículo selecionado</span>
-        <Botao pill variante="ghost" class="ml-auto text-[13px]">Selecionar veículo</Botao>
+        <Botao href="/" pill variante="ghost" class="ml-auto text-[13px]">Selecionar veículo</Botao>
       </template>
     </div>
   </div>
