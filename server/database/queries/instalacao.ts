@@ -1,5 +1,5 @@
-import { and, eq, sql } from 'drizzle-orm'
-import { db, instalacao } from '~~/server/database'
+import { and, desc, eq, sql } from 'drizzle-orm'
+import { db, instalacao, veiculo } from '~~/server/database'
 
 const REGISTROS_MINIMOS_PARA_ESTATISTICA = 5
 
@@ -54,4 +54,28 @@ export async function buscarRelatosDefeito(pecaId: string): Promise<RelatosDefei
     .sort((a, b) => b.percentual - a.percentual || a.texto.localeCompare(b.texto))
 
   return { modo: 'estatistica', totalElegiveis: elegiveis.length, relatos }
+}
+
+export async function buscarInstalacoesPeca(pecaId: string) {
+  return db
+    .select({
+      id: instalacao.id,
+      data: instalacao.data,
+      km: instalacao.km,
+      custo: instalacao.custo,
+      oficina: instalacao.oficina,
+      nota: instalacao.nota,
+      oQueDeuErrado: instalacao.oQueDeuErrado,
+      veiculo: {
+        marca: veiculo.marca,
+        modelo: veiculo.modelo,
+        ano: veiculo.ano,
+        motor: veiculo.motor,
+        dono: veiculo.dono
+      }
+    })
+    .from(instalacao)
+    .innerJoin(veiculo, eq(instalacao.veiculoId, veiculo.id))
+    .where(eq(instalacao.pecaId, pecaId))
+    .orderBy(desc(instalacao.data))
 }

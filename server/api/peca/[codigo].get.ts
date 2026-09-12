@@ -1,5 +1,5 @@
 import { buscarPecaPorCodigo } from '~~/server/database/queries/peca'
-import { buscarEstatisticasPeca, buscarRelatosDefeito } from '~~/server/database/queries/instalacao'
+import { buscarEstatisticasPeca, buscarInstalacoesPeca, buscarRelatosDefeito } from '~~/server/database/queries/instalacao'
 import { normalizarCodigo } from '~~/shared/codigoNorm'
 
 export default defineEventHandler(async (event) => {
@@ -10,10 +10,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Peça não encontrada' })
   }
 
-  const [estatisticas, relatosDefeito] = await Promise.all([
+  const [estatisticas, relatosDefeito, instalacoes] = await Promise.all([
     buscarEstatisticasPeca(resultado.id),
-    buscarRelatosDefeito(resultado.id)
+    buscarRelatosDefeito(resultado.id),
+    buscarInstalacoesPeca(resultado.id)
   ])
 
-  return { ...resultado, estatisticas, relatosDefeito }
+  return { ...resultado, estatisticas, relatosDefeito, instalacoes }
 })

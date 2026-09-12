@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { db, veiculo, peca, instalacao } from '~~/server/database'
-import { buscarEstatisticasPeca, buscarRelatosDefeito } from './instalacao'
+import { buscarEstatisticasPeca, buscarInstalacoesPeca, buscarRelatosDefeito } from './instalacao'
 
 function meseAtras(n: number): string {
   const d = new Date()
@@ -143,5 +143,63 @@ describe('buscarRelatosDefeito', () => {
         { texto: 'Vazamento', percentual: 40 }
       ])
     }
+  })
+})
+
+describe('buscarInstalacoesPeca', () => {
+  let veiculoId: string
+  const codigoTeste = 'TOKA-TESTE-LISTA-C1'
+  let pecaId: string
+
+  beforeAll(async () => {
+    const [v] = await db
+      .insert(veiculo)
+      .values({ marca: 'Nissan', modelo: '180SX', ano: 1994, motor: 'SR20DET', dono: 'kenji.garage' })
+      .returning({ id: veiculo.id })
+    veiculoId = v.id
+
+    const [p] = await db
+      .insert(peca)
+      .values({ fabricante: 'TOKA QA', nome: 'Peça com instalações', codigo: codigoTeste, categoria: 'teste' })
+      .returning({ id: peca.id })
+    pecaId = p.id
+
+    await db.insert(instalacao).values([
+      { veiculoId, pecaId, data: '2024-02-10', km: 96100, custo: '5100.00', oficina: 'feito em casa', nota: 5 },
+      { veiculoId, pecaId, data: '2023-08-05', km: 158900, custo: '4890.00', oficina: 'Oficina Tanaka', nota: 4 }
+    ])
+  })
+
+  afterAll(async () => {
+    await db.delete(instalacao).where(eq(instalacao.pecaId, pecaId))
+    await db.delete(peca).where(eq(peca.codigo, codigoTeste))
+    await db.delete(veiculo).where(eq(veiculo.id, veiculoId))
+  })
+
+  it('lista as instalações da peça, mais recente primeiro, com o veículo junto', async () => {
+    const resultado = await buscarInstalacoesPeca(pecaId)
+
+    expect(resultado).toHaveLength(2)
+    expect(resultado[0]).toMatchObject({
+      data: '2024-02-10',
+      km: 96100,
+      oficina: 'feito em casa',
+      nota: 5,
+      veiculo: { marca: 'Nissan', modelo: '180SX', ano: 1994, motor: 'SR20DET', dono: 'kenji.garage' }
+    })
+    expect(resultado[1]).toMatchObject({ data: '2023-08-05', oficina: 'Oficina Tanaka' })
+  })
+
+  it('retorna lista vazia quando a peça não tem nenhuma instalação', async () => {
+    const [semRegistro] = await db
+      .insert(peca)
+      .values({ fabricante: 'TOKA QA', nome: 'Peça sem instalação', codigo: 'TOKA-TESTE-LISTA-C2', categoria: 'teste' })
+      .returning({ id: peca.id })
+
+    const resultado = await buscarInstalacoesPeca(semRegistro.id)
+
+    expect(resultado).toEqual([])
+
+    await db.delete(peca).where(eq(peca.id, semRegistro.id))
   })
 })

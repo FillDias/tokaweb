@@ -3,6 +3,7 @@ import { extrairCodigoDoSlug } from '~~/shared/slug'
 import FichaCabecalho from '~/components/peca/FichaCabecalho.vue'
 import FichaMetricas from '~/components/peca/FichaMetricas.vue'
 import RelatosDefeito from '~/components/peca/RelatosDefeito.vue'
+import ListaInstalacoes from '~/components/peca/ListaInstalacoes.vue'
 
 const route = useRoute()
 const codigo = extrairCodigoDoSlug(route.params.slug as string)
@@ -17,6 +18,7 @@ const { data: peca, error } = await useFetch(`/api/peca/${codigo}`)
       <FichaCabecalho :peca="peca" />
       <FichaMetricas :estatisticas="peca.estatisticas" />
       <RelatosDefeito :relatos-defeito="peca.relatosDefeito" />
+      <ListaInstalacoes :instalacoes="peca.instalacoes" />
     </template>
   </div>
 </template>
