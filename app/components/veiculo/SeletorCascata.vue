@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import Botao from '~/components/base/Botao.vue'
+import type { VeiculoAtivo } from '~~/shared/veiculo'
 
 const emit = defineEmits<{
-  confirmar: [{ marca: string; modelo: string; ano: number; motor: string }]
+  confirmar: [VeiculoAtivo]
 }>()
 
 const { data: opcoesIniciais } = await useFetch('/api/veiculos/opcoes')

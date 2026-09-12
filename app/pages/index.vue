@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import SeletorCascata from '~/components/veiculo/SeletorCascata.vue'
+import type { VeiculoAtivo } from '~~/shared/veiculo'
 
 const veiculoAtivo = useVeiculoAtivo()
 
-function aoConfirmar(veiculo: { marca: string; modelo: string; ano: number; motor: string }) {
+function aoConfirmar(veiculo: VeiculoAtivo) {
   veiculoAtivo.value = veiculo
 }
 </script>

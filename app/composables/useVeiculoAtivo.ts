@@ -1,9 +1,4 @@
-export type VeiculoAtivo = {
-  marca: string
-  modelo: string
-  ano: number
-  motor: string
-}
+import type { VeiculoAtivo } from '~~/shared/veiculo'
 
 const UM_ANO_EM_SEGUNDOS = 60 * 60 * 24 * 365
 

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { montarSlug } from '~~/shared/slug'
 import BlocoCodigo from '~/components/base/BlocoCodigo.vue'
+import SeloCompat from '~/components/base/SeloCompat.vue'
+
+const veiculoAtivo = useVeiculoAtivo()
 
 const route = useRoute()
 const termo = computed(() => (route.query.q as string) ?? '')
@@ -36,6 +39,7 @@ useSeoMeta({
             <div class="font-bold">{{ resultado.nome }}</div>
             <BlocoCodigo :codigo="resultado.codigo" />
           </div>
+          <SeloCompat v-if="veiculoAtivo" :estado="resultado.compatibilidade" />
         </a>
       </li>
     </ul>

@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { db, veiculo, peca, instalacao } from '~~/server/database'
-import { buscarEstatisticasPeca, buscarInstalacoesPeca, buscarRelatosDefeito } from './instalacao'
+import {
+  buscarCompatibilidadeEmLote,
+  buscarEstatisticasPeca,
+  buscarInstalacoesPeca,
+  buscarRelatosDefeito
+} from './instalacao'
 
 function meseAtras(n: number): string {
   const d = new Date()
@@ -201,5 +206,87 @@ describe('buscarInstalacoesPeca', () => {
     expect(resultado).toEqual([])
 
     await db.delete(peca).where(eq(peca.id, semRegistro.id))
+  })
+})
+
+describe('buscarCompatibilidadeEmLote', () => {
+  const veiculoAlvo = { marca: 'TOKA QA Nissan', modelo: 'Silvia S13', motor: 'SR20DET' }
+  let veiculoAlvoId: string
+  let veiculoOutroMotorId: string
+  const codigoDireto = 'TOKA-TESTE-COMPAT-D1'
+  const codigoNaoServe = 'TOKA-TESTE-COMPAT-D2'
+  const codigoSemDados = 'TOKA-TESTE-COMPAT-D3'
+  let pecaDiretoId: string
+  let pecaNaoServeId: string
+  let pecaSemDadosId: string
+
+  beforeAll(async () => {
+    const [v1] = await db
+      .insert(veiculo)
+      .values({ marca: veiculoAlvo.marca, modelo: veiculoAlvo.modelo, ano: 1991, motor: veiculoAlvo.motor })
+      .returning({ id: veiculo.id })
+    veiculoAlvoId = v1.id
+
+    const [v2] = await db
+      .insert(veiculo)
+      .values({ marca: veiculoAlvo.marca, modelo: veiculoAlvo.modelo, ano: 1991, motor: 'CA18DET' })
+      .returning({ id: veiculo.id })
+    veiculoOutroMotorId = v2.id
+
+    const [p1] = await db
+      .insert(peca)
+      .values({ fabricante: 'TOKA QA', nome: 'Peça direto', codigo: codigoDireto, categoria: 'teste' })
+      .returning({ id: peca.id })
+    pecaDiretoId = p1.id
+
+    const [p2] = await db
+      .insert(peca)
+      .values({ fabricante: 'TOKA QA', nome: 'Peça não serve', codigo: codigoNaoServe, categoria: 'teste' })
+      .returning({ id: peca.id })
+    pecaNaoServeId = p2.id
+
+    const [p3] = await db
+      .insert(peca)
+      .values({ fabricante: 'TOKA QA', nome: 'Peça sem dados', codigo: codigoSemDados, categoria: 'teste' })
+      .returning({ id: peca.id })
+    pecaSemDadosId = p3.id
+
+    await db.insert(instalacao).values([
+      { veiculoId: veiculoAlvoId, pecaId: pecaDiretoId, data: '2024-01-10', compatibilidade: 'direto' },
+      { veiculoId: veiculoAlvoId, pecaId: pecaNaoServeId, data: '2024-01-10', compatibilidade: 'direto' },
+      { veiculoId: veiculoAlvoId, pecaId: pecaNaoServeId, data: '2024-02-10', compatibilidade: 'nao_serve' },
+      // esse registro é de outro motor — não deve contar pra pecaSemDados no veículo alvo
+      { veiculoId: veiculoOutroMotorId, pecaId: pecaSemDadosId, data: '2024-01-10', compatibilidade: 'direto' }
+    ])
+  })
+
+  afterAll(async () => {
+    await db.delete(instalacao).where(inArray(instalacao.veiculoId, [veiculoAlvoId, veiculoOutroMotorId]))
+    await db.delete(peca).where(inArray(peca.id, [pecaDiretoId, pecaNaoServeId, pecaSemDadosId]))
+    await db.delete(veiculo).where(inArray(veiculo.id, [veiculoAlvoId, veiculoOutroMotorId]))
+  })
+
+  it('marca direto quando só há relato de encaixe direto', async () => {
+    const resultado = await buscarCompatibilidadeEmLote([pecaDiretoId], veiculoAlvo)
+
+    expect(resultado[pecaDiretoId]).toBe('direto')
+  })
+
+  it('prioriza não_serve mesmo havendo relato de direto pro mesmo veículo', async () => {
+    const resultado = await buscarCompatibilidadeEmLote([pecaNaoServeId], veiculoAlvo)
+
+    expect(resultado[pecaNaoServeId]).toBe('nao_serve')
+  })
+
+  it('marca sem_dados quando o relato existente é de outro motor', async () => {
+    const resultado = await buscarCompatibilidadeEmLote([pecaSemDadosId], veiculoAlvo)
+
+    expect(resultado[pecaSemDadosId]).toBe('sem_dados')
+  })
+
+  it('retorna objeto vazio quando a lista de peças é vazia', async () => {
+    const resultado = await buscarCompatibilidadeEmLote([], veiculoAlvo)
+
+    expect(resultado).toEqual({})
   })
 })
