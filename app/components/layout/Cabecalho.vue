@@ -2,6 +2,8 @@
 const route = useRoute()
 const termoAtual = computed(() => (route.query.q as string) ?? '')
 
+const { loggedIn, user } = useUserSession()
+
 const navegacao = [
   { pt: 'Peças', jp: 'パーツ' },
   { pt: 'Minha garagem', jp: '愛車' },
@@ -36,10 +38,16 @@ const navegacao = [
           <button type="submit" class="border-0 bg-ki px-5 font-bold text-[14.5px]">Buscar</button>
         </form>
 
-        <div class="flex gap-4 text-[12.5px] text-mute flex-none">
+        <div class="flex gap-4 text-[12.5px] text-mute flex-none items-center">
           <a href="/garagem" class="text-center block">Garagem</a>
           <a href="/oficinas" class="text-center block">Oficinas</a>
-          <a href="/entrar" class="text-center block">Entrar</a>
+          <template v-if="loggedIn">
+            <span class="font-bold text-sumi" data-testid="cabecalho-usuario">{{ user?.nome ?? 'Minha conta' }}</span>
+            <form method="post" action="/api/auth/logout">
+              <button type="submit" class="text-mute underline">Sair</button>
+            </form>
+          </template>
+          <a v-else href="/entrar" class="text-center block">Entrar</a>
         </div>
       </div>
     </div>
