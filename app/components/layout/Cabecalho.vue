@@ -1,4 +1,7 @@
 <script setup lang="ts">
+const route = useRoute()
+const termoAtual = computed(() => (route.query.q as string) ?? '')
+
 const navegacao = [
   { pt: 'Peças', jp: 'パーツ' },
   { pt: 'Minha garagem', jp: '愛車' },
@@ -20,10 +23,13 @@ const navegacao = [
 
         <form
           data-testid="cabecalho-busca"
+          method="get"
+          action="/buscar"
           class="flex border-2 border-sumi rounded-[10px] overflow-hidden bg-white flex-1 order-3 w-full sm:order-none sm:w-auto"
-          @submit.prevent
         >
           <input
+            name="q"
+            :value="termoAtual"
             placeholder="Código da peça, nome ou fabricante — ex.: VSTB8-C1SS3"
             class="flex-1 border-0 px-3.5 py-2.5 text-[14.5px] outline-none min-w-0"
           >

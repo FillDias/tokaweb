@@ -1,5 +1,7 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { db, instalacao, veiculo } from '~~/server/database'
+
+type Compatibilidade = 'direto' | 'adaptacao' | 'nao_serve' | 'sem_dados'
 
 const REGISTROS_MINIMOS_PARA_ESTATISTICA = 5
 
@@ -78,4 +80,50 @@ export async function buscarInstalacoesPeca(pecaId: string) {
     .innerJoin(veiculo, eq(instalacao.veiculoId, veiculo.id))
     .where(eq(instalacao.pecaId, pecaId))
     .orderBy(desc(instalacao.data))
+}
+
+export async function buscarCompatibilidadeEmLote(
+  pecaIds: string[],
+  veiculoAtivo: { marca: string; modelo: string; motor: string }
+): Promise<Record<string, Compatibilidade>> {
+  if (pecaIds.length === 0) return {}
+
+  const linhas = await db
+    .select({ pecaId: instalacao.pecaId, compatibilidade: instalacao.compatibilidade })
+    .from(instalacao)
+    .innerJoin(veiculo, eq(instalacao.veiculoId, veiculo.id))
+    .where(
+      and(
+        inArray(instalacao.pecaId, pecaIds),
+        eq(veiculo.marca, veiculoAtivo.marca),
+        eq(veiculo.modelo, veiculoAtivo.modelo),
+        eq(veiculo.motor, veiculoAtivo.motor),
+        isNotNull(instalacao.compatibilidade)
+      )
+    )
+
+  const porPeca = new Map<string, Set<string>>()
+  for (const linha of linhas) {
+    const atual = porPeca.get(linha.pecaId) ?? new Set()
+    atual.add(linha.compatibilidade!)
+    porPeca.set(linha.pecaId, atual)
+  }
+
+  const resultado: Record<string, Compatibilidade> = {}
+  for (const pecaId of pecaIds) {
+    const relatados = porPeca.get(pecaId)
+    // "não serve" avisa antes: um relato de incompatibilidade pesa mais
+    // que vários de encaixe direto, é dinheiro e tempo de quem instala
+    resultado[pecaId] = !relatados
+      ? 'sem_dados'
+      : relatados.has('nao_serve')
+        ? 'nao_serve'
+        : relatados.has('direto')
+          ? 'direto'
+          : relatados.has('adaptacao')
+            ? 'adaptacao'
+            : 'sem_dados'
+  }
+
+  return resultado
 }
