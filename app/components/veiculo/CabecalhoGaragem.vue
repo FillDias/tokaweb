@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SeloCompletude from '~/components/veiculo/SeloCompletude.vue'
+
 defineProps<{
   veiculo: {
     marca: string
@@ -20,5 +22,6 @@ defineProps<{
       <template v-if="veiculo.motor"> · {{ veiculo.motor }}</template>
       <template v-if="veiculo.kmAtual"> · {{ veiculo.kmAtual.toLocaleString('pt-BR') }} km</template>
     </div>
+    <SeloCompletude :veiculo="veiculo" class="mt-2 inline-block" />
   </div>
 </template>
