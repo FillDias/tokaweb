@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { inArray } from 'drizzle-orm'
 import { db, veiculo } from '~~/server/database'
-import { listarAnos, listarMarcas, listarModelos, listarMotores } from './veiculo'
+import { buscarVeiculoPorId, listarAnos, listarMarcas, listarModelos, listarMotores } from './veiculo'
 
 describe('cascata de veículo', () => {
   const marcaTeste = 'TOKA QA Nissan'
@@ -52,5 +52,41 @@ describe('cascata de veículo', () => {
     const motores = await listarMotores(marcaTeste, '180SX', 1999)
 
     expect(motores).toEqual([])
+  })
+})
+
+describe('buscarVeiculoPorId', () => {
+  const marcaTeste = 'TOKA QA Toyota'
+  let id: string
+
+  beforeAll(async () => {
+    const [v] = await db
+      .insert(veiculo)
+      .values({ marca: marcaTeste, modelo: 'Corolla', ano: 2010, motor: '1.8', kmAtual: 120000, dono: 'fulano' })
+      .returning({ id: veiculo.id })
+    id = v.id
+  })
+
+  afterAll(async () => {
+    await db.delete(veiculo).where(inArray(veiculo.id, [id]))
+  })
+
+  it('retorna o veículo com todos os campos', async () => {
+    const resultado = await buscarVeiculoPorId(id)
+
+    expect(resultado).toMatchObject({
+      marca: marcaTeste,
+      modelo: 'Corolla',
+      ano: 2010,
+      motor: '1.8',
+      kmAtual: 120000,
+      dono: 'fulano'
+    })
+  })
+
+  it('retorna undefined quando o id não existe', async () => {
+    const resultado = await buscarVeiculoPorId('00000000-0000-0000-0000-000000000000')
+
+    expect(resultado).toBeUndefined()
   })
 })
