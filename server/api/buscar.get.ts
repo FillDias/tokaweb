@@ -2,11 +2,12 @@ import { sql } from 'drizzle-orm'
 import { db, peca } from '~~/server/database'
 import { normalizarCodigo } from '~~/shared/codigoNorm'
 import { buscarCompatibilidadeEmLote } from '~~/server/database/queries/instalacao'
+import { buscarPecasProximas } from '~~/server/database/queries/peca'
 import type { VeiculoAtivo } from '~~/shared/veiculo'
 
 export default defineEventHandler(async (event) => {
   const { q } = getQuery(event)
-  if (!q) return []
+  if (!q) return { resultados: [], proximas: [] }
 
   const termo = normalizarCodigo(String(q))
 
@@ -23,15 +24,22 @@ export default defineEventHandler(async (event) => {
     .orderBy(sql`similarity(${peca.codigoNorm}, ${termo}) DESC`)
     .limit(20)
 
+  if (resultados.length === 0) {
+    return { resultados: [], proximas: await buscarPecasProximas(termo) }
+  }
+
   const veiculoAtivo = lerVeiculoAtivo(getCookie(event, 'veiculo-ativo'))
   const compatibilidade = veiculoAtivo
     ? await buscarCompatibilidadeEmLote(resultados.map((r) => r.id), veiculoAtivo)
     : {}
 
-  return resultados.map(({ id, ...resto }) => ({
-    ...resto,
-    compatibilidade: compatibilidade[id] ?? 'sem_dados'
-  }))
+  return {
+    resultados: resultados.map(({ id, ...resto }) => ({
+      ...resto,
+      compatibilidade: compatibilidade[id] ?? 'sem_dados'
+    })),
+    proximas: []
+  }
 })
 
 function lerVeiculoAtivo(cookie: string | undefined): VeiculoAtivo | null {

@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { montarSlug } from '~~/shared/slug'
-import BlocoCodigo from '~/components/base/BlocoCodigo.vue'
-import SeloCompat from '~/components/base/SeloCompat.vue'
+import ItemResultado from '~/components/busca/ItemResultado.vue'
 
 const veiculoAtivo = useVeiculoAtivo()
 
 const route = useRoute()
 const termo = computed(() => (route.query.q as string) ?? '')
 
-const { data: resultados } = await useFetch('/api/buscar', {
+const { data } = await useFetch('/api/buscar', {
   query: { q: termo },
   watch: [termo]
 })
+
+const resultados = computed(() => data.value?.resultados ?? [])
+const proximas = computed(() => data.value?.proximas ?? [])
 
 useSeoMeta({
   title: () => (termo.value ? `Busca por "${termo.value}" | TOKA` : 'Buscar peça | TOKA')
@@ -24,24 +25,26 @@ useSeoMeta({
       {{ termo ? `Resultados para "${termo}"` : 'Digite um código, nome ou fabricante' }}
     </h1>
 
-    <p v-if="termo && resultados?.length === 0" class="text-mute">
-      Nenhuma peça encontrada para "{{ termo }}".
-    </p>
-
-    <ul v-else-if="resultados && resultados.length > 0" class="divide-y divide-line">
+    <ul v-if="resultados.length > 0" class="divide-y divide-line">
       <li v-for="resultado in resultados" :key="resultado.codigo" class="py-4">
-        <a
-          :href="`/peca/${montarSlug(resultado.fabricante, resultado.nome, resultado.codigo)}`"
-          class="flex items-center justify-between gap-3"
-        >
-          <div>
-            <div class="text-[12.5px] font-bold text-mute tracking-wide">{{ resultado.fabricante }}</div>
-            <div class="font-bold">{{ resultado.nome }}</div>
-            <BlocoCodigo :codigo="resultado.codigo" />
-          </div>
-          <SeloCompat v-if="veiculoAtivo" :estado="resultado.compatibilidade" />
-        </a>
+        <ItemResultado
+          :resultado="resultado"
+          :compatibilidade="veiculoAtivo ? resultado.compatibilidade : undefined"
+        />
       </li>
     </ul>
+
+    <div v-else-if="termo">
+      <p class="text-mute">Nenhuma peça encontrada para "{{ termo }}".</p>
+
+      <template v-if="proximas.length > 0">
+        <p class="text-mute mt-6 mb-2">Peças parecidas com o que você digitou:</p>
+        <ul class="divide-y divide-line">
+          <li v-for="proxima in proximas" :key="proxima.codigo" class="py-4">
+            <ItemResultado :resultado="proxima" />
+          </li>
+        </ul>
+      </template>
+    </div>
   </div>
 </template>
