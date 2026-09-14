@@ -1,13 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { eq, inArray } from 'drizzle-orm'
-import { db, veiculo, peca, instalacao } from '~~/server/database'
+import { db, veiculo, peca, instalacao, foto, usuario, curtida } from '~~/server/database'
 import {
   buscarCompatibilidadeEmLote,
   buscarEstatisticasPeca,
   buscarInstalacoesPeca,
+  buscarInstalacoesRecentes,
   buscarModificacoesPorVeiculo,
-  buscarRelatosDefeito
+  buscarRelatosDefeito,
+  criarInstalacao
 } from './instalacao'
+import { criarFotos } from './foto'
+import { curtir } from './curtida'
 
 function meseAtras(n: number): string {
   const d = new Date()
@@ -177,9 +181,35 @@ describe('buscarInstalacoesPeca', () => {
   })
 
   afterAll(async () => {
+    const idsInstalacao = (await db.select({ id: instalacao.id }).from(instalacao).where(eq(instalacao.pecaId, pecaId))).map(
+      (l) => l.id
+    )
+    if (idsInstalacao.length > 0) {
+      await db.delete(curtida).where(inArray(curtida.instalacaoId, idsInstalacao))
+      await db.delete(foto).where(inArray(foto.instalacaoId, idsInstalacao))
+    }
     await db.delete(instalacao).where(eq(instalacao.pecaId, pecaId))
     await db.delete(peca).where(eq(peca.codigo, codigoTeste))
     await db.delete(veiculo).where(eq(veiculo.id, veiculoId))
+  })
+
+  it('a instalação mais curtida sobe pra frente mesmo sendo mais antiga', async () => {
+    const [antes] = await buscarInstalacoesPeca(pecaId)
+    expect(antes.data).toBe('2024-02-10') // mais recente, sem curtida ainda
+
+    const [u] = await db.insert(usuario).values({ nome: 'Curtidor de Teste' }).returning({ id: usuario.id })
+    const [maisAntiga] = await db
+      .select({ id: instalacao.id })
+      .from(instalacao)
+      .where(eq(instalacao.data, '2023-08-05'))
+    await curtir(u.id, maisAntiga.id)
+
+    const [depois] = await buscarInstalacoesPeca(pecaId)
+    expect(depois.data).toBe('2023-08-05')
+    expect(depois.curtidas).toBe(1)
+
+    await db.delete(curtida).where(eq(curtida.usuarioId, u.id))
+    await db.delete(usuario).where(eq(usuario.id, u.id))
   })
 
   it('lista as instalações da peça, mais recente primeiro, com o veículo junto', async () => {
@@ -194,6 +224,22 @@ describe('buscarInstalacoesPeca', () => {
       veiculo: { marca: 'Nissan', modelo: '180SX', ano: 1994, motor: 'SR20DET', dono: 'kenji.garage' }
     })
     expect(resultado[1]).toMatchObject({ data: '2023-08-05', oficina: 'Oficina Tanaka' })
+    expect(resultado[0].fotos).toEqual([])
+  })
+
+  it('devolve as urls assinadas das fotos da instalação', async () => {
+    const resultado = await buscarInstalacoesPeca(pecaId)
+    const idInstalacaoRecente = resultado[0].id
+
+    await criarFotos(idInstalacaoRecente, ['instalacao/teste-1.jpg', 'instalacao/teste-2.jpg'])
+
+    const comFotos = await buscarInstalacoesPeca(pecaId)
+    const instalacaoComFotos = comFotos.find((i) => i.id === idInstalacaoRecente)!
+
+    expect(instalacaoComFotos.fotos).toHaveLength(2)
+    for (const url of instalacaoComFotos.fotos) {
+      expect(decodeURIComponent(url)).toContain('teste-')
+    }
   })
 
   it('retorna lista vazia quando a peça não tem nenhuma instalação', async () => {
@@ -351,5 +397,136 @@ describe('buscarModificacoesPorVeiculo', () => {
     expect(resultado).toEqual([])
 
     await db.delete(veiculo).where(eq(veiculo.id, semMods.id))
+  })
+})
+
+describe('criarInstalacao', () => {
+  let veiculoId: string
+  let pecaId: string
+  let idsInstalacaoParaLimpar: string[] = []
+  const codigoTeste = 'TOKA-TESTE-CRIAR-INST'
+
+  beforeAll(async () => {
+    const [v] = await db
+      .insert(veiculo)
+      .values({ marca: 'TOKA QA', modelo: 'Veículo de teste', ano: 2000, motor: '1.0' })
+      .returning({ id: veiculo.id })
+    veiculoId = v.id
+
+    const [p] = await db
+      .insert(peca)
+      .values({ fabricante: 'TOKA QA', nome: 'Peça pra criar instalação', codigo: codigoTeste, categoria: 'teste' })
+      .returning({ id: peca.id })
+    pecaId = p.id
+  })
+
+  afterAll(async () => {
+    await db.delete(instalacao).where(inArray(instalacao.id, idsInstalacaoParaLimpar))
+    await db.delete(peca).where(eq(peca.id, pecaId))
+    await db.delete(veiculo).where(eq(veiculo.id, veiculoId))
+  })
+
+  it('grava só com os campos obrigatórios', async () => {
+    const criada = await criarInstalacao({ veiculoId, pecaId, data: '2024-05-01' })
+    idsInstalacaoParaLimpar.push(criada.id)
+
+    const [linha] = await db.select().from(instalacao).where(eq(instalacao.id, criada.id))
+    expect(linha).toMatchObject({ veiculoId, pecaId, km: null, custo: null, nota: null, compatibilidade: null })
+  })
+
+  it('grava custo como string com duas casas — coluna numeric é modo string no drizzle', async () => {
+    const criada = await criarInstalacao({
+      veiculoId,
+      pecaId,
+      data: '2024-05-01',
+      km: 45000,
+      custo: 890.5,
+      oficina: 'Oficina do Zé',
+      nota: 5,
+      oQueDeuErrado: 'Nada até agora',
+      compatibilidade: 'direto'
+    })
+    idsInstalacaoParaLimpar.push(criada.id)
+
+    const [linha] = await db.select().from(instalacao).where(eq(instalacao.id, criada.id))
+    expect(linha).toMatchObject({
+      km: 45000,
+      custo: '890.50',
+      oficina: 'Oficina do Zé',
+      nota: 5,
+      oQueDeuErrado: 'Nada até agora',
+      compatibilidade: 'direto'
+    })
+  })
+})
+
+describe('buscarInstalacoesRecentes', () => {
+  let veiculoId: string
+  let pecaId: string
+  let instalacaoId: string
+  let usuarioId: string
+  const codigoTeste = 'TOKA-TESTE-FEED-A1'
+
+  beforeAll(async () => {
+    const [v] = await db
+      .insert(veiculo)
+      .values({ marca: 'Honda', modelo: 'Civic', ano: 2018, motor: '2.0', dono: 'fulano.feed' })
+      .returning({ id: veiculo.id })
+    veiculoId = v.id
+
+    const [p] = await db
+      .insert(peca)
+      .values({ fabricante: 'TOKA QA', nome: 'Peça do feed', codigo: codigoTeste, categoria: 'teste' })
+      .returning({ id: peca.id })
+    pecaId = p.id
+
+    const [i] = await db
+      .insert(instalacao)
+      .values({ veiculoId, pecaId, data: '2024-01-10', oQueDeuErrado: 'Rangeu depois de 8 meses' })
+      .returning({ id: instalacao.id })
+    instalacaoId = i.id
+
+    const [u] = await db.insert(usuario).values({ nome: 'Curtidor do Feed' }).returning({ id: usuario.id })
+    usuarioId = u.id
+    await curtir(usuarioId, instalacaoId)
+  })
+
+  afterAll(async () => {
+    await db.delete(curtida).where(eq(curtida.usuarioId, usuarioId))
+    await db.delete(usuario).where(eq(usuario.id, usuarioId))
+    await db.delete(instalacao).where(eq(instalacao.id, instalacaoId))
+    await db.delete(peca).where(eq(peca.id, pecaId))
+    await db.delete(veiculo).where(eq(veiculo.id, veiculoId))
+  })
+
+  it('traz a peça e o veículo junto, com a contagem de curtidas', async () => {
+    const resultado = await buscarInstalacoesRecentes(30)
+    const post = resultado.find((r) => r.id === instalacaoId)!
+
+    expect(post).toMatchObject({
+      oQueDeuErrado: 'Rangeu depois de 8 meses',
+      peca: { fabricante: 'TOKA QA', nome: 'Peça do feed', codigo: codigoTeste },
+      veiculo: { marca: 'Honda', modelo: 'Civic', dono: 'fulano.feed' },
+      curtidas: 1
+    })
+  })
+
+  it('diz que o usuário logado já curtiu quando ele passa o id', async () => {
+    const resultado = await buscarInstalacoesRecentes(30, usuarioId)
+    const post = resultado.find((r) => r.id === instalacaoId)!
+
+    expect(post.curtidoPorMim).toBe(true)
+  })
+
+  it('sem usuário logado, curtidoPorMim vem falso pra todo mundo', async () => {
+    const resultado = await buscarInstalacoesRecentes(30)
+    const post = resultado.find((r) => r.id === instalacaoId)!
+
+    expect(post.curtidoPorMim).toBe(false)
+  })
+
+  it('respeita o limite pedido', async () => {
+    const resultado = await buscarInstalacoesRecentes(1)
+    expect(resultado).toHaveLength(1)
   })
 })

@@ -1,9 +1,21 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { db, conta, usuario } from '~~/server/database'
-import { buscarUsuarioPorConta, criarUsuarioComConta, entrarOuCriarUsuario } from './usuario'
+import {
+  atualizarPerfil,
+  buscarContaComSenha,
+  buscarProvedorExistentePorEmail,
+  buscarUsuarioPorConta,
+  buscarUsuarioPorId,
+  confirmarEmailPorToken,
+  criarUsuarioComConta,
+  definirTokenConfirmacaoEmail,
+  dispensarLembretePerfil,
+  listarContasPorUsuario,
+  vincularConta
+} from './usuario'
 
-describe('autenticação por provedor', () => {
+describe('usuario e conta', () => {
   const idsUsuarioParaLimpar: string[] = []
 
   afterAll(async () => {
@@ -25,22 +37,31 @@ describe('autenticação por provedor', () => {
     expect(criado).toMatchObject({
       email: 'teste@example.com',
       nome: 'Fulano de Teste',
-      avatarUrl: 'https://exemplo.com/avatar.png'
+      avatarUrl: 'https://exemplo.com/avatar.png',
+      perfilLembreteDispensado: false
     })
 
     const [contaCriada] = await db.select().from(conta).where(eq(conta.usuarioId, criado.id))
-    expect(contaCriada).toMatchObject({ provedor: 'google', idExterno: 'google-teste-1' })
+    expect(contaCriada).toMatchObject({ provedor: 'google', idExterno: 'google-teste-1', senhaHash: null })
   })
 
   it('cria usuario sem email quando o provedor não devolve (caso Line)', async () => {
-    const criado = await criarUsuarioComConta('line', {
-      idExterno: 'line-teste-1',
-      nome: 'Sem Email'
-    })
+    const criado = await criarUsuarioComConta('line', { idExterno: 'line-teste-1', nome: 'Sem Email' })
     idsUsuarioParaLimpar.push(criado.id)
 
     expect(criado.email).toBeNull()
-    expect(criado.nome).toBe('Sem Email')
+  })
+
+  it('cria conta com senha (cadastro manual, provedor email)', async () => {
+    const criado = await criarUsuarioComConta('email', {
+      idExterno: 'manual@example.com',
+      email: 'manual@example.com',
+      senhaHash: 'salt:chave'
+    })
+    idsUsuarioParaLimpar.push(criado.id)
+
+    const contaComSenha = await buscarContaComSenha('email', 'manual@example.com')
+    expect(contaComSenha).toMatchObject({ id: criado.id, senhaHash: 'salt:chave' })
   })
 
   it('buscarUsuarioPorConta acha o usuario pela combinação provedor+id_externo', async () => {
@@ -56,28 +77,81 @@ describe('autenticação por provedor', () => {
     const criado = await criarUsuarioComConta('google', { idExterno: 'google-teste-3' })
     idsUsuarioParaLimpar.push(criado.id)
 
-    const encontrado = await buscarUsuarioPorConta('line', 'google-teste-3')
-
-    expect(encontrado).toBeUndefined()
+    expect(await buscarUsuarioPorConta('line', 'google-teste-3')).toBeUndefined()
   })
 
-  it('entrarOuCriarUsuario reaproveita o usuario existente em vez de duplicar', async () => {
-    const primeiro = await entrarOuCriarUsuario('google', { idExterno: 'google-teste-4', nome: 'Primeira vez' })
-    idsUsuarioParaLimpar.push(primeiro.id)
+  it('buscarProvedorExistentePorEmail acha outro provedor com o mesmo email', async () => {
+    const criado = await criarUsuarioComConta('google', { idExterno: 'google-teste-6', email: 'conflito@e.com' })
+    idsUsuarioParaLimpar.push(criado.id)
 
-    const segundo = await entrarOuCriarUsuario('google', { idExterno: 'google-teste-4', nome: 'Segunda vez' })
+    const provedor = await buscarProvedorExistentePorEmail('conflito@e.com', 'line')
 
-    expect(segundo.id).toBe(primeiro.id)
-    expect(segundo.nome).toBe('Primeira vez')
+    expect(provedor).toBe('google')
   })
 
-  it('entrarOuCriarUsuario cria usuarios separados pra provedores diferentes, mesmo com o mesmo email', async () => {
-    const viaGoogle = await entrarOuCriarUsuario('google', { idExterno: 'google-teste-5', email: 'mesmo@email.com' })
-    idsUsuarioParaLimpar.push(viaGoogle.id)
+  it('buscarProvedorExistentePorEmail ignora o próprio provedor', async () => {
+    const criado = await criarUsuarioComConta('google', { idExterno: 'google-teste-7', email: 'igual@e.com' })
+    idsUsuarioParaLimpar.push(criado.id)
 
-    const viaLine = await entrarOuCriarUsuario('line', { idExterno: 'line-teste-5', email: 'mesmo@email.com' })
-    idsUsuarioParaLimpar.push(viaLine.id)
+    const provedor = await buscarProvedorExistentePorEmail('igual@e.com', 'google')
 
-    expect(viaLine.id).not.toBe(viaGoogle.id)
+    expect(provedor).toBeUndefined()
+  })
+
+  it('vincularConta adiciona um provedor novo a um usuario já existente', async () => {
+    const criado = await criarUsuarioComConta('google', { idExterno: 'google-teste-8' })
+    idsUsuarioParaLimpar.push(criado.id)
+
+    await vincularConta(criado.id, 'line', 'line-teste-8')
+
+    const contas = await listarContasPorUsuario(criado.id)
+    expect(contas.map((c) => c.provedor).sort()).toEqual(['google', 'line'])
+  })
+
+  it('atualizarPerfil muda cep e telefone', async () => {
+    const criado = await criarUsuarioComConta('google', { idExterno: 'google-teste-9' })
+    idsUsuarioParaLimpar.push(criado.id)
+
+    const atualizado = await atualizarPerfil(criado.id, { cep: '01310-100', telefone: '11987654321' })
+
+    expect(atualizado).toMatchObject({ cep: '01310-100', telefone: '11987654321' })
+  })
+
+  it('dispensarLembretePerfil marca o campo como true', async () => {
+    const criado = await criarUsuarioComConta('google', { idExterno: 'google-teste-10' })
+    idsUsuarioParaLimpar.push(criado.id)
+
+    await dispensarLembretePerfil(criado.id)
+
+    const atualizado = await buscarUsuarioPorId(criado.id)
+    expect(atualizado?.perfilLembreteDispensado).toBe(true)
+  })
+
+  it('confirmarEmailPorToken confirma quando o token é válido e não expirou', async () => {
+    const criado = await criarUsuarioComConta('google', { idExterno: 'google-teste-11', email: 'a@b.com' })
+    idsUsuarioParaLimpar.push(criado.id)
+
+    const expiraEm = new Date(Date.now() + 60 * 60 * 1000)
+    await definirTokenConfirmacaoEmail(criado.id, 'token-valido', expiraEm)
+
+    expect(await confirmarEmailPorToken('token-valido')).toBe(true)
+
+    const [linha] = await db.select().from(usuario).where(eq(usuario.id, criado.id))
+    expect(linha.emailConfirmadoEm).not.toBeNull()
+    expect(linha.tokenConfirmacaoEmail).toBeNull()
+  })
+
+  it('confirmarEmailPorToken recusa token expirado', async () => {
+    const criado = await criarUsuarioComConta('google', { idExterno: 'google-teste-12' })
+    idsUsuarioParaLimpar.push(criado.id)
+
+    const jaExpirou = new Date(Date.now() - 60 * 60 * 1000)
+    await definirTokenConfirmacaoEmail(criado.id, 'token-expirado', jaExpirou)
+
+    expect(await confirmarEmailPorToken('token-expirado')).toBe(false)
+  })
+
+  it('confirmarEmailPorToken recusa token que não existe', async () => {
+    expect(await confirmarEmailPorToken('token-que-nao-existe')).toBe(false)
   })
 })

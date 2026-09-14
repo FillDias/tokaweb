@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { eq, inArray } from 'drizzle-orm'
 import { db, peca } from '~~/server/database'
-import { buscarPecaPorCodigo, buscarPecasProximas } from './peca'
+import { buscarPecaPorCodigo, buscarPecaPorId, buscarPecasProximas } from './peca'
 
 describe('buscarPecaPorCodigo', () => {
   const codigoTeste = 'TOKA-TESTE-9F3K2'
@@ -32,6 +32,19 @@ describe('buscarPecaPorCodigo', () => {
 
   it('retorna undefined quando não existe peça com esse código', async () => {
     const resultado = await buscarPecaPorCodigo('CODIGO-QUE-NAO-EXISTE-XPTO')
+
+    expect(resultado).toBeUndefined()
+  })
+
+  it('busca a mesma peça pelo id', async () => {
+    const porCodigo = await buscarPecaPorCodigo('TOKATESTE9F3K2')
+    const resultado = await buscarPecaPorId(porCodigo!.id)
+
+    expect(resultado).toMatchObject({ fabricante: 'TOKA QA', nome: 'Peça de teste automatizado', codigo: codigoTeste })
+  })
+
+  it('buscarPecaPorId retorna undefined quando o id não existe', async () => {
+    const resultado = await buscarPecaPorId('00000000-0000-0000-0000-000000000000')
 
     expect(resultado).toBeUndefined()
   })

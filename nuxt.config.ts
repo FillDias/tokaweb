@@ -4,7 +4,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss', 'nuxt-auth-utils'],
   routeRules: {
-    '/': { prerender: true },
+    '/': { ssr: true }, // feed de instalações recentes — não pode ser estático
     '/peca/**': { isr: 60 * 60 * 12 }, // catálogo: estático
     '/buscar': { ssr: true },
     '/garagem/**': { ssr: true }, // área logada: dinâmica

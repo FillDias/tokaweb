@@ -33,6 +33,31 @@ export async function listarMotores(marca: string, modelo: string, ano: number):
   return linhas.map((l) => l.motor as string)
 }
 
+// usada por POST /api/instalacao — o formulário nunca conhece o
+// veiculo.id de antemão, só marca/modelo/ano/motor. Acha um veiculo
+// existente com esses dados exatos ou cria um na hora. Ver "garagem"
+// em CONTEXT.md: veiculo não tem vínculo com usuario, então qualquer
+// combinação nova vira um veiculo novo
+export async function buscarOuCriarVeiculo(dados: { marca: string; modelo: string; ano: number; motor: string }) {
+  const [existente] = await db
+    .select({ id: veiculo.id })
+    .from(veiculo)
+    .where(
+      and(
+        eq(veiculo.marca, dados.marca),
+        eq(veiculo.modelo, dados.modelo),
+        eq(veiculo.ano, dados.ano),
+        eq(veiculo.motor, dados.motor)
+      )
+    )
+    .limit(1)
+
+  if (existente) return existente.id
+
+  const [criado] = await db.insert(veiculo).values(dados).returning({ id: veiculo.id })
+  return criado.id
+}
+
 export async function buscarVeiculoPorId(id: string) {
   const [resultado] = await db
     .select({

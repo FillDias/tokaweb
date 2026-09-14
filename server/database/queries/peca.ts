@@ -19,6 +19,18 @@ export async function buscarPecaPorCodigo(codigoNorm: string) {
   return resultado
 }
 
+// usada por POST /api/instalacao pra montar o slug da ficha e
+// redirecionar de volta pra lá depois de registrar
+export async function buscarPecaPorId(id: string) {
+  const [resultado] = await db
+    .select({ id: peca.id, fabricante: peca.fabricante, nome: peca.nome, codigo: peca.codigo })
+    .from(peca)
+    .where(eq(peca.id, id))
+    .limit(1)
+
+  return resultado
+}
+
 // usado quando a busca normal (pg_trgm.similarity_threshold, 0.3) não
 // acha nada — sugere o que existe de mais parecido, mesmo abaixo do
 // limiar normal, em vez de só dizer "não achei nada"

@@ -1,5 +1,8 @@
 import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { db, instalacao, peca, veiculo } from '~~/server/database'
+import { buscarChavesPorInstalacoes } from './foto'
+import { buscarCurtidasDoUsuario, contarCurtidasPorInstalacoes } from './curtida'
+import { urlFoto } from '~~/server/utils/armazenamento'
 
 type Compatibilidade = 'direto' | 'adaptacao' | 'nao_serve' | 'sem_dados'
 
@@ -58,8 +61,44 @@ export async function buscarRelatosDefeito(pecaId: string): Promise<RelatosDefei
   return { modo: 'estatistica', totalElegiveis: elegiveis.length, relatos }
 }
 
+type DadosInstalacao = {
+  pecaId: string
+  veiculoId: string
+  data: string
+  km?: number
+  custo?: number
+  oficina?: string
+  nota?: number
+  oQueDeuErrado?: string
+  compatibilidade?: 'direto' | 'adaptacao' | 'nao_serve'
+}
+
+export async function criarInstalacao(dados: DadosInstalacao) {
+  const [criada] = await db
+    .insert(instalacao)
+    .values({
+      pecaId: dados.pecaId,
+      veiculoId: dados.veiculoId,
+      data: dados.data,
+      km: dados.km ?? null,
+      // coluna numeric é modo 'string' no drizzle — número de ponto
+      // flutuante não representa dinheiro com precisão
+      custo: dados.custo !== undefined ? dados.custo.toFixed(2) : null,
+      oficina: dados.oficina ?? null,
+      nota: dados.nota ?? null,
+      oQueDeuErrado: dados.oQueDeuErrado ?? null,
+      compatibilidade: dados.compatibilidade ?? null
+    })
+    .returning({ id: instalacao.id })
+
+  return criada
+}
+
+// mais curtida sobe — é o sinal de "relato útil" (ver CONTEXT.md,
+// "curtida"). Sem curtida nenhuma, cai no critério antigo (mais
+// recente primeiro)
 export async function buscarInstalacoesPeca(pecaId: string) {
-  return db
+  const linhas = await db
     .select({
       id: instalacao.id,
       data: instalacao.data,
@@ -80,6 +119,54 @@ export async function buscarInstalacoesPeca(pecaId: string) {
     .innerJoin(veiculo, eq(instalacao.veiculoId, veiculo.id))
     .where(eq(instalacao.pecaId, pecaId))
     .orderBy(desc(instalacao.data))
+
+  const [chavesPorInstalacao, curtidasPorInstalacao] = await Promise.all([
+    buscarChavesPorInstalacoes(linhas.map((l) => l.id)),
+    contarCurtidasPorInstalacoes(linhas.map((l) => l.id))
+  ])
+
+  return linhas
+    .map((linha) => ({
+      ...linha,
+      fotos: (chavesPorInstalacao.get(linha.id) ?? []).map(urlFoto),
+      curtidas: curtidasPorInstalacao.get(linha.id) ?? 0
+    }))
+    .sort((a, b) => b.curtidas - a.curtidas || b.data.localeCompare(a.data))
+}
+
+// o feed: instalações recém-postadas, não por data de instalação (que
+// pode ser retroativa) — ver "post" em CONTEXT.md, todo post é uma instalação
+export async function buscarInstalacoesRecentes(limite: number, usuarioId?: string) {
+  const linhas = await db
+    .select({
+      id: instalacao.id,
+      data: instalacao.data,
+      custo: instalacao.custo,
+      oficina: instalacao.oficina,
+      nota: instalacao.nota,
+      oQueDeuErrado: instalacao.oQueDeuErrado,
+      peca: { fabricante: peca.fabricante, nome: peca.nome, codigo: peca.codigo },
+      veiculo: { marca: veiculo.marca, modelo: veiculo.modelo, dono: veiculo.dono }
+    })
+    .from(instalacao)
+    .innerJoin(peca, eq(instalacao.pecaId, peca.id))
+    .innerJoin(veiculo, eq(instalacao.veiculoId, veiculo.id))
+    .orderBy(desc(instalacao.criadoEm))
+    .limit(limite)
+
+  const ids = linhas.map((l) => l.id)
+  const [chavesPorInstalacao, curtidasPorInstalacao, curtidasDoUsuario] = await Promise.all([
+    buscarChavesPorInstalacoes(ids),
+    contarCurtidasPorInstalacoes(ids),
+    usuarioId ? buscarCurtidasDoUsuario(usuarioId, ids) : Promise.resolve(new Set<string>())
+  ])
+
+  return linhas.map((linha) => ({
+    ...linha,
+    fotos: (chavesPorInstalacao.get(linha.id) ?? []).map(urlFoto),
+    curtidas: curtidasPorInstalacao.get(linha.id) ?? 0,
+    curtidoPorMim: curtidasDoUsuario.has(linha.id)
+  }))
 }
 
 export async function buscarCompatibilidadeEmLote(

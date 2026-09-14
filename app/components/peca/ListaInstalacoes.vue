@@ -7,6 +7,7 @@ type Instalacao = {
   oficina: string | null
   nota: number | null
   oQueDeuErrado: string | null
+  fotos: string[]
   veiculo: {
     marca: string
     modelo: string
@@ -68,6 +69,15 @@ function formatarEstrelas(nota: number | null): string {
         <span v-if="instalacao.nota" class="text-ki">{{ formatarEstrelas(instalacao.nota) }}</span>
       </div>
       <p v-if="instalacao.oQueDeuErrado" class="text-[13.5px]">{{ instalacao.oQueDeuErrado }}</p>
+      <div v-if="instalacao.fotos.length > 0" class="flex gap-2 mt-2">
+        <img
+          v-for="url in instalacao.fotos"
+          :key="url"
+          :src="url"
+          alt="Foto da instalação"
+          class="w-20 h-20 object-cover rounded-lg border border-line"
+        >
+      </div>
     </div>
   </div>
 </template>

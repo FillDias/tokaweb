@@ -15,6 +15,7 @@ describe('ListaInstalacoes', () => {
             oficina: 'feito em casa',
             nota: 5,
             oQueDeuErrado: 'Zero folga depois de 22 mil km.',
+            fotos: [],
             veiculo: { marca: 'Nissan', modelo: '180SX', ano: 1994, motor: 'SR20DET', dono: 'kenji.garage' }
           }
         ]
@@ -49,6 +50,7 @@ describe('ListaInstalacoes', () => {
             oficina: null,
             nota: null,
             oQueDeuErrado: null,
+            fotos: [],
             veiculo: { marca: 'Toyota', modelo: 'Corolla', ano: 2010, motor: null, dono: null }
           }
         ]
@@ -57,5 +59,51 @@ describe('ListaInstalacoes', () => {
 
     expect(wrapper.text()).toContain('Toyota Corolla · 2010')
     expect(wrapper.text()).toContain('05/2023')
+  })
+
+  it('mostra as fotos da instalação quando existem', () => {
+    const wrapper = mount(ListaInstalacoes, {
+      props: {
+        instalacoes: [
+          {
+            id: '3',
+            data: '2024-03-01',
+            km: null,
+            custo: null,
+            oficina: null,
+            nota: null,
+            oQueDeuErrado: null,
+            fotos: ['https://minio.exemplo/a.jpg', 'https://minio.exemplo/b.jpg'],
+            veiculo: { marca: 'Honda', modelo: 'Civic', ano: 2018, motor: null, dono: null }
+          }
+        ]
+      }
+    })
+
+    const imagens = wrapper.findAll('img')
+    expect(imagens).toHaveLength(2)
+    expect(imagens[0].attributes('src')).toBe('https://minio.exemplo/a.jpg')
+  })
+
+  it('não mostra nenhuma imagem quando não há fotos', () => {
+    const wrapper = mount(ListaInstalacoes, {
+      props: {
+        instalacoes: [
+          {
+            id: '4',
+            data: '2024-03-01',
+            km: null,
+            custo: null,
+            oficina: null,
+            nota: null,
+            oQueDeuErrado: null,
+            fotos: [],
+            veiculo: { marca: 'Honda', modelo: 'Civic', ano: 2018, motor: null, dono: null }
+          }
+        ]
+      }
+    })
+
+    expect(wrapper.findAll('img')).toHaveLength(0)
   })
 })

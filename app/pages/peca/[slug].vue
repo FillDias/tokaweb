@@ -5,6 +5,7 @@ import FichaMetricas from '~/components/peca/FichaMetricas.vue'
 import RelatosDefeito from '~/components/peca/RelatosDefeito.vue'
 import ListaInstalacoes from '~/components/peca/ListaInstalacoes.vue'
 import FichaVazia from '~/components/peca/FichaVazia.vue'
+import BlocoInstalarPeca from '~/components/peca/BlocoInstalarPeca.vue'
 
 const route = useRoute()
 const codigo = extrairCodigoDoSlug(route.params.slug as string)
@@ -73,6 +74,7 @@ useHead({
   <div class="max-w-[1180px] mx-auto px-5 py-16">
     <template v-if="peca">
       <FichaCabecalho :peca="peca" />
+      <BlocoInstalarPeca :peca-id="peca.id" />
       <template v-if="peca.estatisticas.totalRegistros > 0">
         <FichaMetricas :estatisticas="peca.estatisticas" />
         <RelatosDefeito :relatos-defeito="peca.relatosDefeito" />

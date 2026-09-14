@@ -42,12 +42,12 @@ const navegacao = [
           <a href="/garagem" class="text-center block">Garagem</a>
           <a href="/oficinas" class="text-center block">Oficinas</a>
           <template v-if="loggedIn">
-            <span class="font-bold text-sumi" data-testid="cabecalho-usuario">{{ user?.nome ?? 'Minha conta' }}</span>
+            <a href="/conta" class="font-bold text-sumi" data-testid="cabecalho-usuario">{{ user?.nome ?? 'Minha conta' }}</a>
             <form method="post" action="/api/auth/logout">
               <button type="submit" class="text-mute underline">Sair</button>
             </form>
           </template>
-          <a v-else href="/entrar" class="text-center block">Entrar</a>
+          <a v-else :href="`/entrar?redirect=${encodeURIComponent(route.fullPath)}`" class="text-center block">Entrar</a>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { inArray } from 'drizzle-orm'
 import { db, veiculo } from '~~/server/database'
-import { buscarVeiculoPorId, listarAnos, listarMarcas, listarModelos, listarMotores } from './veiculo'
+import { buscarOuCriarVeiculo, buscarVeiculoPorId, listarAnos, listarMarcas, listarModelos, listarMotores } from './veiculo'
 
 describe('cascata de veículo', () => {
   const marcaTeste = 'TOKA QA Nissan'
@@ -88,5 +88,41 @@ describe('buscarVeiculoPorId', () => {
     const resultado = await buscarVeiculoPorId('00000000-0000-0000-0000-000000000000')
 
     expect(resultado).toBeUndefined()
+  })
+})
+
+describe('buscarOuCriarVeiculo', () => {
+  const marcaTeste = 'TOKA QA Ford'
+  const dados = { marca: marcaTeste, modelo: 'Ka', ano: 2015, motor: '1.0' }
+  let idsParaLimpar: string[] = []
+
+  afterAll(async () => {
+    await db.delete(veiculo).where(inArray(veiculo.id, idsParaLimpar))
+  })
+
+  it('cria um veiculo novo quando não existe combinação igual', async () => {
+    const id = await buscarOuCriarVeiculo(dados)
+    idsParaLimpar.push(id)
+
+    const criado = await buscarVeiculoPorId(id)
+    expect(criado).toMatchObject(dados)
+  })
+
+  it('reaproveita o veiculo existente em vez de duplicar', async () => {
+    const primeiroId = await buscarOuCriarVeiculo(dados)
+    idsParaLimpar.push(primeiroId)
+
+    const segundoId = await buscarOuCriarVeiculo(dados)
+    idsParaLimpar.push(segundoId)
+
+    expect(segundoId).toBe(primeiroId)
+  })
+
+  it('motor diferente conta como veiculo diferente', async () => {
+    const id1 = await buscarOuCriarVeiculo(dados)
+    const id2 = await buscarOuCriarVeiculo({ ...dados, motor: '1.5' })
+    idsParaLimpar.push(id1, id2)
+
+    expect(id2).not.toBe(id1)
   })
 })

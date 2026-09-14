@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Cabecalho from '~/components/layout/Cabecalho.vue'
+import FaixaCompletarPerfil from '~/components/layout/FaixaCompletarPerfil.vue'
 import FaixaVeiculo from '~/components/layout/FaixaVeiculo.vue'
 import Rodape from '~/components/layout/Rodape.vue'
 import CtaFlutuante from '~/components/layout/CtaFlutuante.vue'
@@ -10,6 +11,7 @@ const veiculoAtivo = useVeiculoAtivo()
 <template>
   <div class="bg-surface text-sumi min-h-screen flex flex-col font-texto">
     <Cabecalho />
+    <FaixaCompletarPerfil />
     <FaixaVeiculo :veiculo="veiculoAtivo ?? undefined" />
     <main class="flex-1">
       <slot />

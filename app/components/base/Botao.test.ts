@@ -53,6 +53,16 @@ describe('Botao', () => {
     expect(wrapper.classes()).not.toContain('rounded-full')
   })
 
+  it('chapado remove a sombra deslocada do variante primário', () => {
+    const wrapper = mount(Botao, {
+      props: { chapado: true },
+      slots: { default: 'Entrar' }
+    })
+
+    expect(wrapper.classes()).toContain('bg-ki')
+    expect(wrapper.classes().some((classe) => classe.startsWith('shadow-'))).toBe(false)
+  })
+
   it('disabled bloqueia o clique', async () => {
     const aoClicar = vi.fn()
     const wrapper = mount(Botao, {
