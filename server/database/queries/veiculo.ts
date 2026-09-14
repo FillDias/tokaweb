@@ -32,3 +32,21 @@ export async function listarMotores(marca: string, modelo: string, ano: number):
     .orderBy(veiculo.motor)
   return linhas.map((l) => l.motor as string)
 }
+
+export async function buscarVeiculoPorId(id: string) {
+  const [resultado] = await db
+    .select({
+      id: veiculo.id,
+      marca: veiculo.marca,
+      modelo: veiculo.modelo,
+      ano: veiculo.ano,
+      motor: veiculo.motor,
+      kmAtual: veiculo.kmAtual,
+      dono: veiculo.dono
+    })
+    .from(veiculo)
+    .where(eq(veiculo.id, id))
+    .limit(1)
+
+  return resultado
+}

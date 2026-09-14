@@ -1,5 +1,5 @@
-import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
-import { db, instalacao, veiculo } from '~~/server/database'
+import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { db, instalacao, peca, veiculo } from '~~/server/database'
 
 type Compatibilidade = 'direto' | 'adaptacao' | 'nao_serve' | 'sem_dados'
 
@@ -126,4 +126,25 @@ export async function buscarCompatibilidadeEmLote(
   }
 
   return resultado
+}
+
+export async function buscarModificacoesPorVeiculo(veiculoId: string) {
+  return db
+    .select({
+      id: instalacao.id,
+      data: instalacao.data,
+      km: instalacao.km,
+      custo: instalacao.custo,
+      nota: instalacao.nota,
+      peca: {
+        fabricante: peca.fabricante,
+        nome: peca.nome,
+        codigo: peca.codigo,
+        categoria: peca.categoria
+      }
+    })
+    .from(instalacao)
+    .innerJoin(peca, eq(instalacao.pecaId, peca.id))
+    .where(eq(instalacao.veiculoId, veiculoId))
+    .orderBy(asc(peca.categoria), desc(instalacao.data))
 }

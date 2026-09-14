@@ -11,16 +11,24 @@ const codigo = extrairCodigoDoSlug(route.params.slug as string)
 
 const { data: peca, error } = await useFetch(`/api/peca/${codigo}`)
 
+if (error.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Peça não encontrada', fatal: true })
+}
+
 const descricao = computed(() => {
   if (!peca.value) return 'Peça não encontrada na TOKA.'
   const { fabricante, nome, codigo, estatisticas } = peca.value
   if (estatisticas.totalRegistros > 0) {
-    const nota = estatisticas.notaMedia!.toLocaleString('pt-BR', { minimumFractionDigits: 1 })
     const registros =
       estatisticas.totalRegistros === 1
         ? '1 instalação registrada'
         : `${estatisticas.totalRegistros} instalações registradas`
-    return `${registros}, nota média ${nota}. Veja o que os donos relatam sobre a ${fabricante} ${nome}.`
+    // notaMedia pode ser nulo mesmo com registros — nem toda instalação tem nota
+    const complemento =
+      estatisticas.notaMedia !== null
+        ? `, nota média ${estatisticas.notaMedia.toLocaleString('pt-BR', { minimumFractionDigits: 1 })}`
+        : ''
+    return `${registros}${complemento}. Veja o que os donos relatam sobre a ${fabricante} ${nome}.`
   }
   return `Ficha da peça ${codigo} — ${fabricante} ${nome}. Ainda sem instalações registradas na TOKA.`
 })
@@ -29,8 +37,7 @@ useSeoMeta({
   title: () => (peca.value ? `${peca.value.nome} — ${peca.value.codigo} | TOKA` : 'Peça não encontrada | TOKA'),
   description: descricao,
   ogTitle: () => (peca.value ? `${peca.value.fabricante} ${peca.value.nome}` : undefined),
-  ogDescription: descricao,
-  robots: () => (error.value ? 'noindex' : undefined)
+  ogDescription: descricao
 })
 
 useHead({
@@ -64,8 +71,7 @@ useHead({
 
 <template>
   <div class="max-w-[1180px] mx-auto px-5 py-16">
-    <p v-if="error">Peça não encontrada.</p>
-    <template v-else-if="peca">
+    <template v-if="peca">
       <FichaCabecalho :peca="peca" />
       <template v-if="peca.estatisticas.totalRegistros > 0">
         <FichaMetricas :estatisticas="peca.estatisticas" />
