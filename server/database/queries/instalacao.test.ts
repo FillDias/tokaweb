@@ -5,6 +5,7 @@ import {
   buscarCompatibilidadeEmLote,
   buscarEstatisticasPeca,
   buscarInstalacoesPeca,
+  buscarModificacoesPorVeiculo,
   buscarRelatosDefeito
 } from './instalacao'
 
@@ -288,5 +289,67 @@ describe('buscarCompatibilidadeEmLote', () => {
     const resultado = await buscarCompatibilidadeEmLote([], veiculoAlvo)
 
     expect(resultado).toEqual({})
+  })
+})
+
+describe('buscarModificacoesPorVeiculo', () => {
+  let veiculoId: string
+  const codigoSuspensao = 'TOKA-TESTE-MOD-SUSP'
+  const codigoMotor = 'TOKA-TESTE-MOD-MOTOR'
+  let pecaSuspensaoId: string
+  let pecaMotorId: string
+
+  beforeAll(async () => {
+    const [v] = await db
+      .insert(veiculo)
+      .values({ marca: 'TOKA QA', modelo: 'Veículo de teste', ano: 2000 })
+      .returning({ id: veiculo.id })
+    veiculoId = v.id
+
+    const [p1] = await db
+      .insert(peca)
+      .values({ fabricante: 'TEIN', nome: 'Flex Z', codigo: codigoSuspensao, categoria: 'suspensao' })
+      .returning({ id: peca.id })
+    pecaSuspensaoId = p1.id
+
+    const [p2] = await db
+      .insert(peca)
+      .values({ fabricante: 'HKS', nome: 'Turbo GT', codigo: codigoMotor, categoria: 'motor' })
+      .returning({ id: peca.id })
+    pecaMotorId = p2.id
+
+    await db.insert(instalacao).values([
+      { veiculoId, pecaId: pecaSuspensaoId, data: '2024-01-10', km: 1000 },
+      { veiculoId, pecaId: pecaMotorId, data: '2023-06-01', km: 500 }
+    ])
+  })
+
+  afterAll(async () => {
+    await db.delete(instalacao).where(eq(instalacao.veiculoId, veiculoId))
+    await db.delete(peca).where(inArray(peca.id, [pecaSuspensaoId, pecaMotorId]))
+    await db.delete(veiculo).where(eq(veiculo.id, veiculoId))
+  })
+
+  it('lista as modificações do veículo com a peça e a categoria (sistema) junto', async () => {
+    const resultado = await buscarModificacoesPorVeiculo(veiculoId)
+
+    expect(resultado).toHaveLength(2)
+    expect(resultado.map((r) => r.peca.categoria).sort()).toEqual(['motor', 'suspensao'])
+    expect(resultado.find((r) => r.peca.categoria === 'suspensao')).toMatchObject({
+      peca: { nome: 'Flex Z', fabricante: 'TEIN', codigo: codigoSuspensao }
+    })
+  })
+
+  it('retorna lista vazia quando o veículo não tem nenhuma modificação', async () => {
+    const [semMods] = await db
+      .insert(veiculo)
+      .values({ marca: 'TOKA QA', modelo: 'Sem modificação', ano: 2000 })
+      .returning({ id: veiculo.id })
+
+    const resultado = await buscarModificacoesPorVeiculo(semMods.id)
+
+    expect(resultado).toEqual([])
+
+    await db.delete(veiculo).where(eq(veiculo.id, semMods.id))
   })
 })
